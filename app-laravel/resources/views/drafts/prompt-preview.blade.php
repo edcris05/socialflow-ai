@@ -7,7 +7,8 @@
 </head>
 <body>
     <main style="max-width: 960px; margin: 2rem auto; padding: 2rem; font-family: sans-serif;">
-        <h1>Vista previa del prompt</h1>
+        <h1>PREVIEW PARA DESARROLLO: prompt generado</h1>
+        <p>Esta vista solo permite inspeccionar el contenido que podría enviarse a un futuro proveedor LLM. No realiza llamadas externas.</p>
         <p><strong>Marca:</strong> {{ $brand->name }}</p>
         <p><strong>Borrador:</strong> {{ $draft->title }}</p>
 

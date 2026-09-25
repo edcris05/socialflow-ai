@@ -972,14 +972,14 @@
     "semantic_hash": "90c0e50cd76f20c7d243045517ece56d"
   },
   "app-laravel/resources/views/context/create.blade.php": {
-    "mtime": 1790346499.9318616,
-    "seen": 1790346568.8610592,
+    "mtime": 1790346624.4265475,
+    "seen": 1790347068.8918946,
     "ast_hash": "d696ffddc8008dbd21e788c2844beee5",
     "semantic_hash": ""
   },
   "app-laravel/tests/Feature/ContextRetrievalTest.php": {
-    "mtime": 1790346547.3731132,
-    "seen": 1790346568.861126,
+    "mtime": 1790346624.4265475,
+    "seen": 1790347068.8919876,
     "ast_hash": "54d8286d112c0c8df64d5f3157cfaea8",
     "semantic_hash": ""
   },
@@ -1002,9 +1002,9 @@
     "semantic_hash": "de88be1ec2858549226d6cd64f420fc3"
   },
   "app-laravel/app/Models/ContextSnapshot.php": {
-    "mtime": 1790342249.9573066,
-    "seen": 1790346568.8607829,
-    "ast_hash": "6bf60b2641b276a2474aa1c3b7a9421a",
+    "mtime": 1790347329.2467048,
+    "seen": 1790348594.6183484,
+    "ast_hash": "7b607ed1f988414283cc13066be09b51",
     "semantic_hash": ""
   },
   "app-laravel/database/migrations/2026_09_24_023107_create_context_snapshots_table.php": {
@@ -1032,27 +1032,27 @@
     "semantic_hash": ""
   },
   "app-laravel/app/Services/Prompting/GenerationPrompt.php": {
-    "mtime": 1790343788.4618695,
-    "seen": 1790346568.8608391,
-    "ast_hash": "451f9cf96bd954f68c5d0a73ea55ef02",
+    "mtime": 1790347329.254705,
+    "seen": 1790348594.6183887,
+    "ast_hash": "8cb0f691d7d4e8c6b966434c95a31004",
     "semantic_hash": ""
   },
   "app-laravel/app/Services/Prompting/PromptComposer.php": {
-    "mtime": 1790343788.4658694,
-    "seen": 1790346568.8608441,
-    "ast_hash": "c63519db7edbc06be9109270c2c70ea5",
+    "mtime": 1790348240.8476338,
+    "seen": 1790348594.6183922,
+    "ast_hash": "7e571ec18a93db4b3d4ff9077f986a22",
     "semantic_hash": ""
   },
   "app-laravel/resources/views/drafts/prompt-preview.blade.php": {
-    "mtime": 1790343788.4668694,
-    "seen": 1790346568.8610816,
-    "ast_hash": "9c4037f7d5b6684f9d8606c047b62507",
+    "mtime": 1790347329.254705,
+    "seen": 1790348594.6186228,
+    "ast_hash": "f8f4c94b7bfc3f815ba3c20841a2fe97",
     "semantic_hash": ""
   },
   "app-laravel/tests/Feature/PromptAssemblyTest.php": {
-    "mtime": 1790343788.4618695,
-    "seen": 1790346568.8611405,
-    "ast_hash": "ce0a5f7761fc924fd8e55e48be4430a9",
+    "mtime": 1790348240.8696342,
+    "seen": 1790348594.6187115,
+    "ast_hash": "a70789de7974821cff7eb8a1a4422409",
     "semantic_hash": ""
   }
 }

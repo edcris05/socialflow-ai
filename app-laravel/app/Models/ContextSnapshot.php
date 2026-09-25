@@ -54,6 +54,23 @@ class ContextSnapshot extends Model
         ]);
     }
 
+    public function toPackage(): ContextPackage
+    {
+        return new ContextPackage(
+            $this->brand,
+            (string) $this->query,
+            collect($this->relevant_knowledge ?? []),
+            collect($this->brand_context ?? []),
+            collect($this->policies ?? []),
+            collect($this->restrictions ?? []),
+            collect($this->pending_knowledge ?? []),
+            collect($this->sources ?? []),
+            $this->warnings ?? [],
+            $this->missing_information ?? [],
+            collect($this->matches ?? []),
+        );
+    }
+
     public function draft(): BelongsTo
     {
         return $this->belongsTo(Draft::class);

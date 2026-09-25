@@ -103,6 +103,27 @@ class PromptAssemblyTest extends TestCase
         $this->assertStringContainsString('Stock: disponibilidad actual desconocida.', $prompt->render());
     }
 
+    public function test_prompt_marks_pending_knowledge_as_unverified_and_requires_confirmation(): void
+    {
+        [$user, $brand] = $this->brandContext();
+        $draft = $this->draftWithSnapshot($user, $brand, 'Promocionar stickers resistentes');
+        $snapshot = $draft->contextSnapshot;
+        $snapshot->update([
+            'pending_knowledge' => [[
+                'title' => 'Promoción pendiente',
+                'content' => 'Posible descuento aún no confirmado.',
+            ]],
+        ]);
+
+        $prompt = app(PromptComposer::class)->compose($snapshot->fresh());
+        $rendered = $prompt->render();
+
+        $this->assertStringContainsString('Posible descuento aún no confirmado.', $rendered);
+        $this->assertStringContainsString('información no verificada', $rendered);
+        $this->assertStringContainsString('nunca la presentes como un hecho', $rendered);
+        $this->assertStringContainsString('requiere confirmación', $rendered);
+    }
+
     public function test_prompt_does_not_auto_include_technical_metadata_in_llm_text(): void
     {
         [$user, $brand] = $this->brandContext();

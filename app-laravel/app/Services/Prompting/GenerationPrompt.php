@@ -5,7 +5,8 @@ namespace App\Services\Prompting;
 final class GenerationPrompt
 {
     /**
-     * @param array<int, array<string, mixed>> $relevantKnowledge
+        * @param array<int, string> $systemInstructions
+    * @param array<int, array<string, mixed>> $relevantKnowledge
      * @param array<int, array<string, mixed>> $brandContext
      * @param array<int, array<string, mixed>> $policies
      * @param array<int, array<string, mixed>> $restrictions
@@ -20,6 +21,7 @@ final class GenerationPrompt
         public string $draftId,
         public string $brandId,
         public string $userId,
+        public array $systemInstructions = [],
         public array $relevantKnowledge = [],
         public array $brandContext = [],
         public array $policies = [],
@@ -31,10 +33,26 @@ final class GenerationPrompt
         public array $metadata = [],
     ) {}
 
+    public function sections(): array
+    {
+        return [
+            'systemInstructions' => $this->systemInstructions,
+            'userRequest' => $this->request,
+            'brandContext' => $this->brandContext,
+            'relevantKnowledge' => $this->relevantKnowledge,
+            'pendingKnowledge' => $this->pendingKnowledge,
+            'policies' => $this->policies,
+            'restrictions' => $this->restrictions,
+            'warnings' => $this->warnings,
+            'missingInformation' => $this->missingInformation,
+        ];
+    }
+
     public function render(): string
     {
         $lines = [
-            'Instrucción: Sólo puede utilizar información proporcionada en el contexto de la marca y la solicitud del usuario.',
+            'Instrucciones del sistema:',
+            implode("\n", array_map(fn (string $instruction): string => '- '.$instruction, $this->systemInstructions)),
             'Solicitud: '.$this->request,
             'Contexto de marca:',
         ];
@@ -42,6 +60,11 @@ final class GenerationPrompt
         $lines[] = $this->formatEntries($this->brandContext, 'contexto de marca');
         $lines[] = 'Conocimiento relevante:';
         $lines[] = $this->formatEntries($this->relevantKnowledge, 'conocimiento relevante');
+
+        if ($this->pendingKnowledge !== []) {
+            $lines[] = 'Conocimiento pendiente/no confirmado:';
+            $lines[] = $this->formatEntries($this->pendingKnowledge, 'conocimiento pendiente');
+        }
 
         if ($this->policies !== []) {
             $lines[] = 'Políticas relevantes:';
