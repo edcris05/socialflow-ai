@@ -1,0 +1,3 @@
+<x-layouts.app title="Editar conocimiento · SocialFlow AI">
+    <div class="max-w-3xl"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">{{ $brand->name }}</p><h1 class="mt-2 text-3xl font-semibold">Editar conocimiento</h1><form action="{{ route('marcas.conocimiento.update', [$brand, $entry]) }}" method="POST" class="mt-8">@method('PUT')@include('knowledge.form', ['entry' => $entry])</form></div>
+</x-layouts.app>

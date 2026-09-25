@@ -1,0 +1,550 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "SocialFlow migrate",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"migrate",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "SocialFlow verify",
+			"type": "shell",
+			"command": "sh",
+			"args": [
+				"-lc",
+				"ddev artisan migrate:status --no-interaction && ddev artisan test && curl -k -sS -o /dev/null -w 'HTTP %{http_code}\\n' https://socialflow-ai.ddev.site/marcas"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "SocialFlow HTTP check",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-k",
+				"-sS",
+				"-o",
+				"/dev/null",
+				"-w",
+				"home HTTP %{http_code}\\n",
+				"https://socialflow-ai.ddev.site/"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "SocialFlow guest check",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-k",
+				"-sS",
+				"-o",
+				"/dev/null",
+				"-w",
+				"brands HTTP %{http_code}\\n",
+				"https://socialflow-ai.ddev.site/marcas"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "SocialFlow graph update",
+			"type": "shell",
+			"command": "graphify",
+			"args": [
+				"update"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "SocialFlow next flow",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"$f=file_get_contents('app-laravel/routes/web.php'); foreach (preg_match_all(\"/->name\\('([^']+)'\\)/\", $f, $m) ? $m[1] : [] as $name) echo $name, PHP_EOL;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect brand knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"tinker",
+				"--execute=App\\Models\\Brand::query()->where(function ($q) { $q->where('name', 'ilike', '%Art Made%')->orWhere('slug', 'ilike', '%art%'); })->with('knowledgeEntries')->get(['id','name','slug'])->each(function ($brand) { echo json_encode(['brand' => $brand->only(['id','name','slug']), 'entries' => $brand->knowledgeEntries->map->only(['id','title','status','source'])->values()], JSON_UNESCAPED_UNICODE).PHP_EOL; });"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List Art Made knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT b.id AS brand_id, b.name, b.slug, ke.id AS entry_id, ke.title, ke.status, ke.source FROM brands b LEFT JOIN knowledge_entries ke ON ke.brand_id = b.id WHERE b.name ILIKE '%Art Made%' OR b.slug ILIKE '%art%' ORDER BY b.name, ke.title;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List brands",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT id,name,slug FROM brands"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List knowledge entries",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT brand_id,title,status,source FROM knowledge_entries ORDER BY title"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Seed Art Made knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"db:seed",
+				"--class=ArtMadeKnowledgeSeeder",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify knowledge count",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT b.name, count(ke.id) AS entries FROM brands b LEFT JOIN knowledge_entries ke ON ke.brand_id = b.id GROUP BY b.id,b.name ORDER BY b.name"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify knowledge duplicates",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT brand_id,title,count(*) AS copies FROM knowledge_entries GROUP BY brand_id,title HAVING count(*) > 1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run SocialFlow tests",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List final knowledge titles",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,status,source FROM knowledge_entries ORDER BY title"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "List final titles plain",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title FROM knowledge_entries ORDER BY title"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect existing entries",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,content,source,status FROM knowledge_entries WHERE title IN ('Regla de información confirmada','Organización de producción','Identidad de Art Made to Print')"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect prior knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,content FROM knowledge_entries ORDER BY created_at"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Consolidate Art Made knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"db:seed",
+				"--class=ConsolidateArtMadeKnowledgeSeeder",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify consolidated count",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT count(*) AS total_entries FROM knowledge_entries"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify no title duplicates",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,count(*) AS copies FROM knowledge_entries GROUP BY brand_id,title HAVING count(*) > 1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run final SocialFlow tests",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Update SocialFlow graph",
+			"type": "shell",
+			"command": "graphify",
+			"args": [
+				"update"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Inspect current commercial KB",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,status,source,content FROM knowledge_entries ORDER BY title"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Seed commercial knowledge",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"db:seed",
+				"--class=ArtMadeCommercialKnowledgeSeeder",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Re-run commercial seeder",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"db:seed",
+				"--class=ArtMadeCommercialKnowledgeSeeder",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify commercial KB",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT count(*) AS total_entries, count(*) FILTER (WHERE status = 'verified') AS verified_entries FROM knowledge_entries; SELECT title,count(*) AS copies FROM knowledge_entries GROUP BY brand_id,title HAVING count(*) > 1; SELECT title FROM knowledge_entries WHERE title IN ('Precios de impresiones','Precio de anillados','Precios de stickers','Precios de etiquetas','Precio de diseños personalizados','Proceso de pedidos personalizados','Medios de pago aceptados','Modalidades de entrega','Tiempos de producción','Canales oficiales de contacto','Ubicación de Art Made to Print','Horarios de atención','Público objetivo','Stock disponible','Cambios, reclamos y problemas con pedidos','Condiciones de pago en pedidos personalizados','Ubicación pública','Política de publicación de precios') ORDER BY title;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run KB regression tests",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test",
+				"--filter=KnowledgeManagementTest"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Count commercial KB",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT count(*) AS total_entries, count(*) FILTER (WHERE status = 'verified') AS verified_entries FROM knowledge_entries"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check KB duplicates",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT title,count(*) AS copies FROM knowledge_entries GROUP BY brand_id,title HAVING count(*) > 1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run full SocialFlow tests",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Count KB entries",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT count(*) AS total_entries FROM knowledge_entries"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check KB statuses",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT status,count(*) FROM knowledge_entries GROUP BY status ORDER BY status"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check audit count",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT count(*) AS audit_events FROM knowledge_audits"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Update graph commercial KB",
+			"type": "shell",
+			"command": "graphify",
+			"args": [
+				"update"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Summarize SocialFlow state",
+			"type": "shell",
+			"command": "graphify",
+			"args": [
+				"query",
+				"¿Cuál es el estado actual de SocialFlowAI? Resume infraestructura, autenticación multi-tenant, marcas, base de conocimiento, auditoría, búsqueda, borradores, pruebas y pendientes para continuar el MVP.",
+				"--budget",
+				"2200"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate retrieval core",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"migrate",
+				"--no-interaction"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run context retrieval tests",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test",
+				"--filter=ContextRetrievalTest"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run full Context Retrieval suite",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"artisan",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify KB categories",
+			"type": "shell",
+			"command": "ddev",
+			"args": [
+				"psql",
+				"-P",
+				"pager=off",
+				"-d",
+				"socialflow_app",
+				"-c",
+				"SELECT category,count(*) FROM knowledge_entries GROUP BY category ORDER BY category"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

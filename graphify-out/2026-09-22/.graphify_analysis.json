@@ -1,0 +1,434 @@
+{
+  "communities": {
+    "0": [
+      "app_laravel_app_http_controllers_brandcontroller",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_create",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_edit",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_index",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_show",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_store",
+      "app_laravel_app_http_controllers_brandcontroller_brandcontroller_update",
+      "app_laravel_app_http_controllers_controller",
+      "app_laravel_app_http_controllers_controller_controller",
+      "app_laravel_app_http_requests_storebrandrequest",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest_authorize",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest_lines",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest_messages",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest_prepareforvalidation",
+      "app_laravel_app_http_requests_storebrandrequest_storebrandrequest_rules",
+      "app_laravel_app_http_requests_updatebrandrequest",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest_authorize",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest_lines",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest_messages",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest_prepareforvalidation",
+      "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest_rules",
+      "app_laravel_routes_web",
+      "illuminate_foundation_http_formrequest",
+      "illuminate_http_redirectresponse",
+      "illuminate_support_facades_route",
+      "illuminate_validation_rule",
+      "illuminate_view_view"
+    ],
+    "1": [
+      "app_laravel_composer",
+      "app_laravel_composer_autoload",
+      "app_laravel_composer_autoload_dev",
+      "app_laravel_composer_autoload_dev_psr_4",
+      "app_laravel_composer_autoload_psr_4",
+      "app_laravel_composer_description",
+      "app_laravel_composer_extra",
+      "app_laravel_composer_extra_laravel",
+      "app_laravel_composer_keywords",
+      "app_laravel_composer_laravel_dont_discover",
+      "app_laravel_composer_license",
+      "app_laravel_composer_minimum_stability",
+      "app_laravel_composer_name",
+      "app_laravel_composer_prefer_stable",
+      "app_laravel_composer_psr_4_app",
+      "app_laravel_composer_psr_4_database_factories",
+      "app_laravel_composer_psr_4_database_seeders",
+      "app_laravel_composer_psr_4_tests",
+      "app_laravel_composer_require",
+      "app_laravel_composer_require_laravel_framework",
+      "app_laravel_composer_require_laravel_tinker",
+      "app_laravel_composer_require_php",
+      "app_laravel_composer_schema",
+      "app_laravel_composer_type"
+    ],
+    "2": [
+      "app_laravel_package",
+      "app_laravel_package_devdependencies",
+      "app_laravel_package_devdependencies_concurrently",
+      "app_laravel_package_devdependencies_laravel_vite_plugin",
+      "app_laravel_package_devdependencies_tailwindcss",
+      "app_laravel_package_devdependencies_tailwindcss_vite",
+      "app_laravel_package_devdependencies_vite",
+      "app_laravel_package_optionaldependencies",
+      "app_laravel_package_optionaldependencies_laravel_multiplex",
+      "app_laravel_package_private",
+      "app_laravel_package_schema",
+      "app_laravel_package_scripts",
+      "app_laravel_package_scripts_build",
+      "app_laravel_package_scripts_dev",
+      "app_laravel_package_type",
+      "app_laravel_vite_config",
+      "ref_concurrently",
+      "ref_laravel_multiplex",
+      "ref_laravel_vite_plugin",
+      "ref_tailwindcss",
+      "ref_tailwindcss_vite",
+      "ref_vite"
+    ],
+    "3": [
+      "app_laravel_app_models_brand",
+      "app_laravel_app_models_brand_brand",
+      "app_laravel_app_models_brand_brand_casts",
+      "app_laravel_tests_feature_brandmanagementtest",
+      "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest",
+      "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest_test_creates_a_brand_with_verified_context_fields",
+      "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest_test_lists_existing_brands",
+      "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest_test_rejects_a_duplicated_slug_with_a_clear_message",
+      "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest_test_updates_a_brand",
+      "app_laravel_tests_feature_exampletest",
+      "app_laravel_tests_feature_exampletest_exampletest",
+      "app_laravel_tests_feature_exampletest_exampletest_test_the_application_returns_a_successful_response",
+      "app_laravel_tests_testcase",
+      "app_laravel_tests_testcase_testcase",
+      "illuminate_database_eloquent_attributes_fillable",
+      "illuminate_database_eloquent_concerns_hasulids",
+      "illuminate_database_eloquent_model",
+      "illuminate_foundation_testing_lazilyrefreshdatabase",
+      "illuminate_foundation_testing_testcase"
+    ],
+    "4": [
+      "app_laravel_app_models_user",
+      "app_laravel_app_models_user_user",
+      "app_laravel_app_models_user_user_casts",
+      "app_laravel_config_auth",
+      "app_laravel_database_seeders_brandseeder",
+      "app_laravel_database_seeders_brandseeder_brandseeder",
+      "app_laravel_database_seeders_brandseeder_brandseeder_run",
+      "app_laravel_database_seeders_databaseseeder",
+      "app_laravel_database_seeders_databaseseeder_databaseseeder",
+      "app_laravel_database_seeders_databaseseeder_databaseseeder_run",
+      "illuminate_database_console_seeds_withoutmodelevents",
+      "illuminate_database_eloquent_attributes_hidden",
+      "illuminate_database_eloquent_factories_hasfactory",
+      "illuminate_database_seeder",
+      "illuminate_foundation_auth_user",
+      "illuminate_notifications_notifiable"
+    ],
+    "5": [
+      "app_laravel_config_cache",
+      "app_laravel_config_database",
+      "app_laravel_config_session",
+      "app_laravel_database_factories_brandfactory",
+      "app_laravel_database_factories_brandfactory_brandfactory",
+      "app_laravel_database_factories_brandfactory_brandfactory_definition",
+      "app_laravel_database_factories_userfactory",
+      "app_laravel_database_factories_userfactory_userfactory",
+      "app_laravel_database_factories_userfactory_userfactory_definition",
+      "app_laravel_database_factories_userfactory_userfactory_unverified",
+      "illuminate_database_eloquent_factories_factory",
+      "illuminate_support_facades_hash",
+      "illuminate_support_str",
+      "pdo_mysql",
+      "static"
+    ],
+    "6": [
+      "app_laravel_database_migrations_0001_01_01_000000_create_users_table",
+      "app_laravel_database_migrations_0001_01_01_000000_create_users_table_down",
+      "app_laravel_database_migrations_0001_01_01_000000_create_users_table_up",
+      "app_laravel_database_migrations_0001_01_01_000001_create_cache_table",
+      "app_laravel_database_migrations_0001_01_01_000001_create_cache_table_down",
+      "app_laravel_database_migrations_0001_01_01_000001_create_cache_table_up",
+      "app_laravel_database_migrations_0001_01_01_000002_create_jobs_table",
+      "app_laravel_database_migrations_0001_01_01_000002_create_jobs_table_down",
+      "app_laravel_database_migrations_0001_01_01_000002_create_jobs_table_up",
+      "app_laravel_database_migrations_2026_09_19_000000_create_brands_table",
+      "app_laravel_database_migrations_2026_09_19_000000_create_brands_table_down",
+      "app_laravel_database_migrations_2026_09_19_000000_create_brands_table_up",
+      "illuminate_database_migrations_migration",
+      "illuminate_database_schema_blueprint",
+      "illuminate_support_facades_schema"
+    ],
+    "7": [
+      "app_laravel_composer_require_dev",
+      "app_laravel_composer_require_dev_fakerphp_faker",
+      "app_laravel_composer_require_dev_laravel_boost",
+      "app_laravel_composer_require_dev_laravel_pail",
+      "app_laravel_composer_require_dev_laravel_pao",
+      "app_laravel_composer_require_dev_laravel_pint",
+      "app_laravel_composer_require_dev_mockery_mockery",
+      "app_laravel_composer_require_dev_nunomaduro_collision",
+      "app_laravel_composer_require_dev_phpunit_phpunit"
+    ],
+    "8": [
+      "app_laravel_composer_scripts",
+      "app_laravel_composer_scripts_dev",
+      "app_laravel_composer_scripts_post_autoload_dump",
+      "app_laravel_composer_scripts_post_create_project_cmd",
+      "app_laravel_composer_scripts_post_root_package_install",
+      "app_laravel_composer_scripts_post_update_cmd",
+      "app_laravel_composer_scripts_pre_package_uninstall",
+      "app_laravel_composer_scripts_setup",
+      "app_laravel_composer_scripts_test"
+    ],
+    "9": [
+      "app_laravel_composer_allow_plugins_pestphp_pest_plugin",
+      "app_laravel_composer_allow_plugins_php_http_discovery",
+      "app_laravel_composer_config",
+      "app_laravel_composer_config_allow_plugins",
+      "app_laravel_composer_config_optimize_autoloader",
+      "app_laravel_composer_config_preferred_install",
+      "app_laravel_composer_config_sort_packages"
+    ],
+    "10": [
+      "app_laravel_app_providers_appserviceprovider",
+      "app_laravel_app_providers_appserviceprovider_appserviceprovider",
+      "app_laravel_app_providers_appserviceprovider_appserviceprovider_boot",
+      "app_laravel_app_providers_appserviceprovider_appserviceprovider_register",
+      "app_laravel_bootstrap_providers",
+      "illuminate_support_serviceprovider"
+    ],
+    "11": [
+      "app_laravel_bootstrap_app",
+      "app_laravel_public_index",
+      "illuminate_foundation_application",
+      "illuminate_foundation_configuration_exceptions",
+      "illuminate_foundation_configuration_middleware",
+      "illuminate_http_request"
+    ],
+    "12": [
+      "app_laravel_config_logging",
+      "monolog_handler_nullhandler",
+      "monolog_handler_streamhandler",
+      "monolog_handler_syslogudphandler",
+      "monolog_processor_psrlogmessageprocessor"
+    ],
+    "13": [
+      "app_laravel_tests_unit_exampletest",
+      "app_laravel_tests_unit_exampletest_exampletest",
+      "app_laravel_tests_unit_exampletest_exampletest_test_that_true_is_true",
+      "phpunit_framework_testcase"
+    ],
+    "14": [
+      "app_laravel_artisan",
+      "application",
+      "argvinput"
+    ],
+    "15": [
+      "app_laravel_mcp",
+      "app_laravel_mcp_mcp_server_laravel_boost",
+      "mcp_command_php"
+    ],
+    "16": [
+      "app_laravel_routes_console",
+      "illuminate_foundation_inspiring",
+      "illuminate_support_facades_artisan"
+    ],
+    "17": [
+      "app_laravel_resources_views_brands_create_blade",
+      "app_laravel_resources_views_brands_create_blade_php_brands_partials_form"
+    ],
+    "18": [
+      "app_laravel_resources_views_brands_edit_blade",
+      "app_laravel_resources_views_brands_edit_blade_php_brands_partials_form"
+    ],
+    "19": [
+      "app_laravel_config_app"
+    ],
+    "20": [
+      "app_laravel_config_filesystems"
+    ],
+    "21": [
+      "app_laravel_config_mail"
+    ],
+    "22": [
+      "app_laravel_config_queue"
+    ],
+    "23": [
+      "app_laravel_config_services"
+    ],
+    "24": [
+      "app_laravel_resources_js_app"
+    ],
+    "25": [
+      "app_laravel_resources_views_brands_index_blade"
+    ],
+    "26": [
+      "app_laravel_resources_views_brands_partials_form_blade"
+    ],
+    "27": [
+      "app_laravel_resources_views_brands_show_blade"
+    ],
+    "28": [
+      "app_laravel_resources_views_components_layouts_app_blade"
+    ],
+    "29": [
+      "app_laravel_resources_views_home_blade"
+    ],
+    "30": [
+      "app_laravel_resources_views_layouts_app_blade"
+    ],
+    "31": [
+      "app_laravel_resources_views_welcome_blade"
+    ]
+  },
+  "cohesion": {
+    "0": 0.10114942528735632,
+    "1": 0.08333333333333333,
+    "2": 0.09956709956709957,
+    "3": 0.16374269005847952,
+    "4": 0.18333333333333332,
+    "5": 0.1619047619047619,
+    "6": 0.19047619047619047,
+    "7": 0.2222222222222222,
+    "8": 0.2222222222222222,
+    "9": 0.2857142857142857,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4,
+    "13": 0.6666666666666666,
+    "14": 0.6666666666666666,
+    "15": 0.6666666666666666,
+    "16": 0.6666666666666666,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0
+  },
+  "gods": [
+    {
+      "id": "app_laravel_app_models_brand_brand",
+      "label": "Brand",
+      "degree": 18
+    },
+    {
+      "id": "app_laravel_app_http_controllers_brandcontroller_brandcontroller",
+      "label": "BrandController",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_app_http_requests_storebrandrequest_storebrandrequest",
+      "label": "StoreBrandRequest",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_app_http_requests_updatebrandrequest_updatebrandrequest",
+      "label": "UpdateBrandRequest",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_app_models_user_user",
+      "label": "User",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_composer_require_dev",
+      "label": "require-dev",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_composer_scripts",
+      "label": "scripts",
+      "degree": 9
+    },
+    {
+      "id": "app_laravel_tests_feature_brandmanagementtest_brandmanagementtest",
+      "label": "BrandManagementTest",
+      "degree": 7
+    },
+    {
+      "id": "app_laravel_tests_testcase_testcase",
+      "label": "TestCase",
+      "degree": 6
+    },
+    {
+      "id": "app_laravel_app_providers_appserviceprovider_appserviceprovider",
+      "label": "AppServiceProvider",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "BrandController",
+      "target": "Controller",
+      "source_files": [
+        "app-laravel/app/Http/Controllers/BrandController.php",
+        "app-laravel/app/Http/Controllers/Controller.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "peripheral node `Controller` unexpectedly reaches hub `BrandController`"
+    },
+    {
+      "source": "BrandManagementTest",
+      "target": "TestCase",
+      "source_files": [
+        "app-laravel/tests/Feature/BrandManagementTest.php",
+        "app-laravel/tests/TestCase.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "ExampleTest",
+      "target": "TestCase",
+      "source_files": [
+        "app-laravel/tests/Feature/ExampleTest.php",
+        "app-laravel/tests/TestCase.php"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "inherits",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `Brand` connect `Brand` to `BrandController`, `User`, `UserFactory.php`?",
+      "why": "High betweenness centrality (0.095) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `User` connect `User` to `UserFactory.php`?",
+      "why": "High betweenness centrality (0.028) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `description`, `keywords`, `dont-discover` to the rest of the system?",
+      "why": "54 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `BrandController` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10114942528735632 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `composer.json` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `package.json` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.09956709956709957 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
