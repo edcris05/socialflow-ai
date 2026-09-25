@@ -264,10 +264,10 @@
     "semantic_hash": "3c6ce2e6d16444282b24a9aa63885563"
   },
   "app-laravel/routes/web.php": {
-    "mtime": 1790206860.523353,
-    "seen": 1790210649.9524467,
-    "ast_hash": "5f7473320872fc058193a3e6efef2352",
-    "semantic_hash": "5f7473320872fc058193a3e6efef2352"
+    "mtime": 1790341818.3310401,
+    "seen": 1790341886.70796,
+    "ast_hash": "2d58f1d002046ef6304a942788888eac",
+    "semantic_hash": ""
   },
   "app-laravel/tests/Feature/BrandManagementTest.php": {
     "mtime": 1790037069.0664234,
@@ -750,8 +750,8 @@
     "semantic_hash": ""
   },
   "docs/setup-local.md": {
-    "mtime": 1790208240.3073509,
-    "seen": 1790208267.9694061,
+    "mtime": 1790208678.74185,
+    "seen": 1790341886.708394,
     "ast_hash": "88fab6e4684a067bbf2342d32d7bf233",
     "semantic_hash": ""
   },
@@ -816,10 +816,10 @@
     "semantic_hash": "dece54641154f6bfb0b5d27cb74f0588"
   },
   "app-laravel/app/Models/Draft.php": {
-    "mtime": 1790084691.9865189,
-    "seen": 1790210649.9498296,
-    "ast_hash": "d5db396b153dbe97bb9bcac87ecdd30c",
-    "semantic_hash": "d5db396b153dbe97bb9bcac87ecdd30c"
+    "mtime": 1790341818.301029,
+    "seen": 1790341886.707703,
+    "ast_hash": "2165661b863cbf16a91e73a86abc78e6",
+    "semantic_hash": ""
   },
   "app-laravel/app/Models/KnowledgeAudit.php": {
     "mtime": 1790084691.9865189,
@@ -858,10 +858,10 @@
     "semantic_hash": "e12ab3ca55e8707723ebd0ef37484443"
   },
   "app-laravel/resources/views/drafts/edit.blade.php": {
-    "mtime": 1790084692.0065224,
-    "seen": 1790210649.95222,
-    "ast_hash": "aeae45ffb072ca282b4bef80057b9e50",
-    "semantic_hash": "aeae45ffb072ca282b4bef80057b9e50"
+    "mtime": 1790341818.3310401,
+    "seen": 1790341886.7079103,
+    "ast_hash": "c1b8d24ee7859b9619491c9ff5ffc6ab",
+    "semantic_hash": ""
   },
   "app-laravel/resources/views/drafts/form.blade.php": {
     "mtime": 1790084692.0065224,
@@ -930,10 +930,10 @@
     "semantic_hash": "576f6d2dddc2eeaa784aaad2d3f41e27"
   },
   "app-laravel/app/Http/Controllers/ContextController.php": {
-    "mtime": 1790206860.535354,
-    "seen": 1790210649.9496577,
-    "ast_hash": "e55788927a9987cef463224127b77a97",
-    "semantic_hash": "e55788927a9987cef463224127b77a97"
+    "mtime": 1790341818.3180351,
+    "seen": 1790341886.7076592,
+    "ast_hash": "a5050ea770195ef71660dbf4d2dfbcd0",
+    "semantic_hash": ""
   },
   "app-laravel/app/Http/Requests/ContextRequest.php": {
     "mtime": 1790206860.535354,
@@ -1000,5 +1000,29 @@
     "seen": 1790210649.949507,
     "ast_hash": "de88be1ec2858549226d6cd64f420fc3",
     "semantic_hash": "de88be1ec2858549226d6cd64f420fc3"
+  },
+  "app-laravel/app/Models/ContextSnapshot.php": {
+    "mtime": 1790341818.3180351,
+    "seen": 1790341886.707699,
+    "ast_hash": "6bf60b2641b276a2474aa1c3b7a9421a",
+    "semantic_hash": ""
+  },
+  "app-laravel/database/migrations/2026_09_24_023107_create_context_snapshots_table.php": {
+    "mtime": 1790218341.2300217,
+    "seen": 1790341886.7078416,
+    "ast_hash": "b1afa9a5defa596caae500d511722b88",
+    "semantic_hash": ""
+  },
+  "app-laravel/tests/Feature/ContextSnapshotTest.php": {
+    "mtime": 1790218341.2320218,
+    "seen": 1790341886.7079756,
+    "ast_hash": "681d91d7739b623a170a5eb0755ff664",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1790210249.9892185,
+    "seen": 1790341886.7080073,
+    "ast_hash": "6a47d64fcc136324ca395065a707ef76",
+    "semantic_hash": ""
   }
 }

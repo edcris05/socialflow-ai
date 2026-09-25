@@ -34,7 +34,7 @@
                 <h2 class="text-xl font-semibold">Contexto de marca</h2>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     @foreach ($package->brandContext as $entry)
-                        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><h3 class="font-semibold">{{ $entry->title }}</h3><p class="mt-2 whitespace-pre-line text-sm text-slate-700">{{ $entry->content }}</p></article>
+                        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><h3 class="font-semibold">{{ $entry->title }}</h3><p class="mt-2 whitespace-pre-line text-sm text-slate-700">{{ str_replace('\\n', "\n", $entry->content) }}</p></article>
                     @endforeach
                 </div>
             </section>

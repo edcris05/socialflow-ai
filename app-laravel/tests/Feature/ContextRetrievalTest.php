@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Knowledge\ContextBuilder;
 use App\Services\Knowledge\TextKnowledgeRetriever;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\ViewErrorBag;
 use Tests\TestCase;
 
 class ContextRetrievalTest extends TestCase
@@ -30,6 +31,20 @@ class ContextRetrievalTest extends TestCase
         $this->assertFalse($entries->pluck('entry.title')->contains('Archivado'));
     }
 
+    public function test_retriever_ranks_title_matches_above_content_only_matches(): void
+    {
+        [, $brand] = $this->brandContext();
+        $titleMatch = $this->entry($brand, 'Stickers resistentes', 'Producto disponible', 'verified', 'product');
+        $contentMatch = $this->entry($brand, 'Catálogo comercial', 'Incluye stickers resistentes.', 'verified', 'fact');
+
+        $matches = app(TextKnowledgeRetriever::class)->retrieve($brand, 'stickers resistentes');
+        $ordered = $matches->values();
+
+        $this->assertSame($titleMatch->id, $ordered->first()->entry->id);
+        $this->assertSame($contentMatch->id, $ordered->skip(1)->first()->entry->id);
+        $this->assertGreaterThan($ordered->last()->score, $ordered->first()->score);
+    }
+
     public function test_context_package_separates_rules_sources_and_warnings(): void
     {
         [, $brand] = $this->brandContext();
@@ -47,6 +62,65 @@ class ContextRetrievalTest extends TestCase
         $this->assertContains('Precio antes de publicación: requiere confirmación.', $package->warnings);
         $this->assertContains('Stock actual: requiere confirmación.', $package->warnings);
         $this->assertContains('Fuente comercial', $package->sources->all());
+    }
+
+    public function test_context_package_deduplicates_warnings(): void
+    {
+        [, $brand] = $this->brandContext();
+        $this->entry($brand, 'Pendiente stickers', 'Dato pendiente.', 'pending', 'product');
+        $this->entry($brand, 'Pendiente stickers', 'Otro dato pendiente.', 'pending', 'product');
+
+        $package = app(ContextBuilder::class)->build($brand, 'promocionar stickers');
+
+        $this->assertSame(count($package->warnings), count(array_unique($package->warnings)));
+        $this->assertSame(1, count(array_filter($package->warnings, fn (string $warning): bool => $warning === 'Información pendiente: Pendiente stickers.')));
+    }
+
+    public function test_brand_context_is_separate_from_relevant_knowledge(): void
+    {
+        [, $brand] = $this->brandContext();
+        $this->entry($brand, 'Stickers resistentes', 'Producto disponible.', 'verified', 'product');
+        $identity = $this->entry($brand, 'Identidad y tono de marca', 'Voz cercana y clara.', 'verified', 'brand_identity');
+
+        $package = app(ContextBuilder::class)->build($brand, 'promocionar stickers');
+
+        $this->assertTrue($package->brandContext->contains('id', $identity->id));
+        $this->assertFalse($package->relevantKnowledge->contains('id', $identity->id));
+    }
+
+    public function test_context_preview_renders_escaped_line_breaks_for_relevant_and_brand_context(): void
+    {
+        [, $brand] = $this->brandContext();
+        $this->entry($brand, 'Stickers resistentes', 'Primera línea\\nSegunda línea.', 'verified', 'product');
+        $this->entry($brand, 'Identidad de marca', 'Tono cercano\\nMensaje claro.', 'verified', 'brand_identity');
+
+        $this->post(route('marcas.contexto.preview', $brand), ['query' => 'promocionar stickers'])
+            ->assertOk()
+            ->assertSee("Primera línea\nSegunda línea.", false)
+            ->assertSee("Tono cercano\nMensaje claro.", false)
+            ->assertDontSee('Primera línea\\nSegunda línea.', false)
+            ->assertDontSee('Tono cercano\\nMensaje claro.', false);
+    }
+
+    public function test_local_context_preview_exposes_ranking_debug_without_changing_functional_context(): void
+    {
+        [, $brand] = $this->brandContext();
+        $entry = $this->entry($brand, 'Stickers resistentes', 'Producto disponible.', 'verified', 'product');
+
+        $package = app(ContextBuilder::class)->build($brand, 'promocionar stickers');
+        $this->app->detectEnvironment(fn (): string => 'local');
+        $this->assertTrue($this->app->environment('local'));
+        $html = view('context.create', [
+            'brand' => $brand,
+            'package' => $package,
+            'errors' => new ViewErrorBag,
+        ])->render();
+
+        $this->assertTrue($package->relevantKnowledge->contains('id', $entry->id));
+        $this->assertStringContainsString('Depuración del ranking', $html);
+        $this->assertStringContainsString('score', $html);
+        $this->assertStringContainsString('términos:', $html);
+        $this->assertStringContainsString($entry->title, $html);
     }
 
     public function test_future_ideas_and_unrelated_policies_do_not_contaminate_context(): void
