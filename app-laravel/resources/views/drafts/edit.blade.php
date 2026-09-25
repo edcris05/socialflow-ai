@@ -38,6 +38,9 @@
             </section>
         @endif
 
+        @if ($draft->contextSnapshot)
+            <a href="{{ route('marcas.borradores.prompt.preview', [$brand, $draft]) }}" class="mt-6 inline-block rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Ver prompt</a>
+        @endif
         <form action="{{ route('marcas.borradores.update', [$brand, $draft]) }}" method="POST" class="mt-8">
             @method('PUT')
             @include('drafts.form', ['draft' => $draft])

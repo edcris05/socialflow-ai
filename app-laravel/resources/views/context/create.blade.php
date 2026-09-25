@@ -66,6 +66,11 @@
                 <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">@foreach ($package->sources as $source)<li>{{ $source }}</li>@endforeach</ul>
             </section>
 
+            <form action="{{ route('marcas.contexto.borradores.store', $brand) }}" method="POST" class="mt-8">
+                @csrf
+                <input type="hidden" name="context_token" value="{{ $contextToken ?? '' }}">
+                <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Crear borrador con este contexto</button>
+            </form>
             @if (app()->environment('local') && $package->matches->isNotEmpty())
                 <details class="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm">
                     <summary class="cursor-pointer font-semibold">Depuración del ranking</summary>
