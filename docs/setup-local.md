@@ -140,5 +140,7 @@ Se espera `sessions` en la primera consulta y una respuesta HTTP que no sea `500
 - En entorno `local`, la preview permite abrir `Depuración del ranking` para ver score y términos coincidentes. Los warnings se deduplican y el contenido con `\\n` literal se renderiza como salto de línea seguro, sin interpretar HTML.
 - El punto de extensión futuro es `TextKnowledgeRetriever` -> `VectorKnowledgeRetriever` o `HybridKnowledgeRetriever`; no se implementan aún embeddings, pgvector, OpenAI, FastAPI ni Meta.
 - Para probarlo: iniciar sesión, abrir una marca, elegir `Preparar contenido` y consultar `Quiero promocionar stickers resistentes al agua`. Revisar entradas, políticas, fuentes y advertencias antes de crear un borrador.
-- No añadir todavía FastAPI, `socialflow_ai`, pgvector, OpenAI ni Meta.
+- OpenAI Generation v1 uses Responses API only to generate a draft from its historical ContextSnapshot. Local configuration stays in .env and is documented with safe placeholders in app-laravel/.env.example: OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_OUTPUT_TOKENS, OPENAI_STORE, OPENAI_TIMEOUT, and the three per-million token prices. Never commit or share the API key.
+- The minimal generation request contains model, historical prompt, max_output_tokens=500, reasoning.effort=minimal, and store=false. It has no tools, web search, images, agents, or Meta.
+- Do not add FastAPI, socialflow_ai, pgvector, Meta, or generation capabilities outside this flow yet.
 - La futura segunda base `socialflow_ai` se creará en la misma instancia PostgreSQL DDEV solo cuando se incorpore el servicio FastAPI.

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['title', 'content', 'status', 'brand_id', 'user_id'])]
@@ -22,6 +23,11 @@ class Draft extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function generationRuns(): HasMany
+    {
+        return $this->hasMany(GenerationRun::class);
     }
 
     public function contextSnapshot(): HasOne

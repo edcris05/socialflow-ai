@@ -1,10 +1,12 @@
 <?php
 
-use App\Http\Controllers\BrandController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DraftController;
-use App\Http\Controllers\KnowledgeEntryController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ContextController;
+use App\Http\Controllers\DraftController;
+use App\Http\Controllers\GenerationController;
+use App\Http\Controllers\KnowledgeEntryController;
+use App\Http\Controllers\PromptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -49,6 +51,7 @@ Route::middleware('auth')->group(function () {
         Route::post('borradores', [DraftController::class, 'store'])->name('borradores.store');
         Route::get('borradores/{draft}/editar', [DraftController::class, 'edit'])->name('borradores.edit');
         Route::put('borradores/{draft}', [DraftController::class, 'update'])->name('borradores.update');
-            Route::get('borradores/{draft}/prompt-preview', [\App\Http\Controllers\PromptController::class, 'preview'])->name('borradores.prompt.preview');
+        Route::post('borradores/{draft}/generar', [GenerationController::class, 'store'])->name('borradores.generar');
+        Route::get('borradores/{draft}/prompt-preview', [PromptController::class, 'preview'])->name('borradores.prompt.preview');
     });
 });

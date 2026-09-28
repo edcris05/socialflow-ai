@@ -14,6 +14,18 @@ return [
     |
     */
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-5-mini'),
+        'max_output_tokens' => (int) env('OPENAI_MAX_OUTPUT_TOKENS', 500),
+        'store' => filter_var(env('OPENAI_STORE', false), FILTER_VALIDATE_BOOL),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 30),
+        'pricing' => [
+            'input' => env('OPENAI_INPUT_PRICE_PER_MILLION'),
+            'cached_input' => env('OPENAI_CACHED_INPUT_PRICE_PER_MILLION'),
+            'output' => env('OPENAI_OUTPUT_PRICE_PER_MILLION'),
+        ],
+    ],
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

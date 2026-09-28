@@ -1,17 +1,17 @@
-# Graph Report - SocialFlowAI  (2026-09-25)
+# Graph Report - SocialFlowAI  (2026-09-27)
 
 ## Corpus Check
-- 173 files · ~67,378 words
+- 183 files · ~69,334 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 20 file(s) not represented in the graph (top: (none) 16, .example 1, .xml 1)
 
 ## Summary
-- 1084 nodes · 1503 edges · 104 communities (68 shown, 36 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.95)
+- 1144 nodes · 1656 edges · 113 communities (74 shown, 39 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d2811748`
+- Built from commit: `b7d6d065`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,18 +23,18 @@
 - Cloud CLI
 - Laravel Boost Guidelines
 - Laravel Boost Guidelines
-- ContextSnapshot
+- KnowledgeEntry
 - package.json
 - .claude/skills/testing-best-practices/SKILL.md
 - Illuminate\Foundation\Http\FormRequest
 - Endpoint Tests
 - .agents/skills/testing-best-practices/SKILL.md
-- UserFactory.php
+- Illuminate\Database\Eloquent\Factories\Factory
 - Fakes, Mocks, and Determinism
 - AGENTS.md
-- Brand
+- Illuminate\Foundation\Testing\LazilyRefreshDatabase
 - Assertions
-- .setUp
+- Illuminate\Database\Seeder
 - Detection Checklist
 - Process
 - Security Best Practices
@@ -61,7 +61,7 @@
 - Events and Notifications Best Practices
 - .agents/skills/laravel-best-practices/SKILL.md
 - Blade and View Best Practices
-- Error Handling Best Practices
+- GenerationTest.php
 - Task Scheduling Best Practices
 - Naming and Structure
 - Blade and View Best Practices
@@ -75,15 +75,21 @@
 - HTTP Client Best Practices
 - Mail Best Practices
 - Routing and Controller Best Practices
+- Brand
 - Validation and Forms Best Practices
 - User
+- ContextSnapshotTest
+- Convention and Style Best Practices
 - Collection Best Practices
 - HTTP Client Best Practices
 - Mail Best Practices
 - Routing and Controller Best Practices
+- Convention and Style Best Practices
 - Validation and Forms Best Practices
+- TestCase
+- ConsolidateArtMadeKnowledgeSeeder
 - Configuration Best Practices
-- Test Suite Performance
+- KnowledgeManagementTest
 - Configuration Best Practices
 - Reviewing Tests
 - logging.php
@@ -91,6 +97,7 @@
 - artisan
 - laravel-boost
 - console.php
+- Test Suite Performance
 - brands/create.blade.php
 - brands/edit.blade.php
 - drafts/create.blade.php
@@ -98,46 +105,48 @@
 - knowledge/create.blade.php
 - knowledge/edit.blade.php
 - copilot-instructions.md
+- Naming and Structure
+- Error Handling Best Practices
 
 ## God Nodes (most connected - your core abstractions)
-1. `Brand` - 76 edges
-2. `KnowledgeEntry` - 41 edges
-3. `User` - 32 edges
-4. `TestCase` - 22 edges
-5. `ContextSnapshot` - 20 edges
-6. `Draft` - 19 edges
+1. `Brand` - 81 edges
+2. `KnowledgeEntry` - 43 edges
+3. `User` - 37 edges
+4. `Draft` - 26 edges
+5. `TestCase` - 24 edges
+6. `ContextSnapshot` - 22 edges
 7. `ContextPackage` - 19 edges
-8. `ContextRetrievalTest` - 15 edges
-9. `PromptAssemblyTest` - 15 edges
-10. `KnowledgeEntryController` - 13 edges
+8. `GenerationTest` - 17 edges
+9. `GenerationRun` - 15 edges
+10. `ContextRetrievalTest` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Follow Project Naming Conventions` --references--> `User`  [INFERRED]
+  app-laravel/.agents/skills/laravel-best-practices/rules/style.md → app-laravel/app/Models/User.php
+- `Follow Project Naming Conventions` --references--> `User`  [INFERRED]
+  app-laravel/.claude/skills/laravel-best-practices/rules/style.md → app-laravel/app/Models/User.php
 - `Seguridad y alcance actual` --references--> `ContextBuilder`  [INFERRED]
   docs/setup-local.md → app-laravel/app/Services/Knowledge/ContextBuilder.php
 - `Seguridad y alcance actual` --references--> `ContextPackage`  [INFERRED]
   docs/setup-local.md → app-laravel/app/Services/Knowledge/ContextPackage.php
 - `Seguridad y alcance actual` --references--> `TextKnowledgeRetriever`  [INFERRED]
   docs/setup-local.md → app-laravel/app/Services/Knowledge/TextKnowledgeRetriever.php
-- `Test Class and Methods` --references--> `TestCase`  [INFERRED]
-  app-laravel/.agents/skills/testing-best-practices/rules/naming.md → app-laravel/tests/TestCase.php
-- `Names and Structure` --references--> `TestCase`  [INFERRED]
-  app-laravel/.agents/skills/testing-best-practices/rules/review.md → app-laravel/tests/TestCase.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (104 total, 36 thin omitted)
+## Communities (113 total, 39 thin omitted)
 
 ### Community 0 - "composer.json"
 Cohesion: 0.04
 Nodes (48): pestphp/pest-plugin, php-http/discovery, autoload, autoload-dev, psr-4, psr-4, config, allow-plugins (+40 more)
 
 ### Community 2 - "ContextPackage"
-Cohesion: 0.08
-Nodes (15): AppServiceProvider, ContextBuilder, ContextPackage, KnowledgeRetrieverInterface, TextKnowledgeRetriever, Base de datos y migraciones, Comandos habituales de Laravel, Diagnóstico de error de sesiones (+7 more)
+Cohesion: 0.07
+Nodes (18): self, AppServiceProvider, ContextBuilder, ContextPackage, self, KnowledgeRetrieverInterface, TextKnowledgeRetriever, Base de datos y migraciones (+10 more)
 
 ### Community 3 - "Illuminate\Database\Migrations\Migration"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (4): Illuminate\Database\Migrations\Migration, Illuminate\Database\Schema\Blueprint, Illuminate\Support\Facades\DB, Illuminate\Support\Facades\Schema
 
 ### Community 4 - "Cloud CLI"
@@ -152,9 +161,9 @@ Nodes (27): APIs & Eloquent Resources, Application Structure & Architecture, Art
 Cohesion: 0.07
 Nodes (27): APIs & Eloquent Resources, Application Structure & Architecture, Artisan, Conventions, Deployment, Do Things the Laravel Way, Documentation Files, Foundational Context (+19 more)
 
-### Community 7 - "ContextSnapshot"
+### Community 7 - "KnowledgeEntry"
 Cohesion: 0.08
-Nodes (12): ContextSnapshot, self, Draft, KnowledgeAudit, PromptComposer, Illuminate\Database\Eloquent\Attributes\Fillable, Illuminate\Database\Eloquent\Concerns\HasUlids, Illuminate\Database\Eloquent\Factories\HasFactory (+4 more)
+Nodes (12): ContextSnapshot, GenerationRun, KnowledgeAudit, KnowledgeEntry, RetrievalMatch, Illuminate\Database\Eloquent\Attributes\Fillable, Illuminate\Database\Eloquent\Concerns\HasUlids, Illuminate\Database\Eloquent\Factories\HasFactory (+4 more)
 
 ### Community 8 - "package.json"
 Cohesion: 0.10
@@ -176,25 +185,25 @@ Nodes (7): Endpoint Coverage, Endpoint Tests, How to Write the Test, Tenant Isol
 Cohesion: 0.04
 Nodes (38): Arrange, Act, Assert, Assert a Known Value, Assert the Complete Result, Assertions, How to Find the Correct Assertion, Named Response Assertions, Endpoint Coverage, Endpoint Tests (+30 more)
 
-### Community 13 - "UserFactory.php"
-Cohesion: 0.16
-Nodes (7): BrandFactory, UserFactory, Illuminate\Database\Eloquent\Factories\Factory, Illuminate\Support\Facades\Hash, Illuminate\Support\Str, Pdo\Mysql, static
+### Community 13 - "Illuminate\Database\Eloquent\Factories\Factory"
+Cohesion: 0.14
+Nodes (8): BrandFactory, GenerationRunFactory, UserFactory, Illuminate\Database\Eloquent\Factories\Factory, Illuminate\Support\Facades\Hash, Illuminate\Support\Str, Pdo\Mysql, static
 
 ### Community 14 - "Fakes, Mocks, and Determinism"
 Cohesion: 0.29
-Nodes (6): Database, Fakes, Mocks, and Determinism, How to Isolate a Dependency, Mocking, Outbound HTTP Testing, Time and Randomness
+Nodes (7): Database, Fakes, Mocks, and Determinism, Framework Fakes, How to Isolate a Dependency, Mocking, Outbound HTTP Testing, Time and Randomness
 
-### Community 16 - "Brand"
-Cohesion: 0.05
-Nodes (27): AuthController, BrandController, ContextController, Controller, DraftController, KnowledgeEntryController, PromptController, Brand (+19 more)
+### Community 16 - "Illuminate\Foundation\Testing\LazilyRefreshDatabase"
+Cohesion: 0.15
+Nodes (3): AuthenticationTest, BrandManagementTest, Illuminate\Foundation\Testing\LazilyRefreshDatabase
 
 ### Community 17 - "Assertions"
 Cohesion: 0.29
 Nodes (6): Arrange, Act, Assert, Assert a Known Value, Assert the Complete Result, Assertions, How to Find the Correct Assertion, Named Response Assertions
 
-### Community 18 - ".setUp"
-Cohesion: 0.22
-Nodes (7): Framework Fakes, Data Providers, Each Test Makes Its Own Data, Factories and Test Data, Record Construction, Framework Fakes, Data and Determinism
+### Community 18 - "Illuminate\Database\Seeder"
+Cohesion: 0.20
+Nodes (6): ArtMadeCommercialKnowledgeSeeder, ArtMadeKnowledgeSeeder, BrandSeeder, DatabaseSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Seeder
 
 ### Community 19 - "Detection Checklist"
 Cohesion: 0.17
@@ -225,7 +234,7 @@ Cohesion: 0.18
 Nodes (11): Apply Cross-Site Request Forgery Protection, Audit Dependencies, Authorize Protected Actions, Bind Query Parameters, Control Mass Assignment, Encrypt Sensitive Attributes When Appropriate, Escape Output in Its Context, Keep Secrets Out of Application Code (+3 more)
 
 ### Community 27 - "Architecture Best Practices"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (11): Architecture Best Practices, Depend on Contracts at Boundaries, Extract Focused Business Operations, Follow Framework Conventions, Inject Required Dependencies, Specify a Deterministic Sort Order, Use Atomic Locks for Race Conditions, Use `Concurrency::run()` for Parallel Execution (+3 more)
 
 ### Community 28 - "Tailwind CSS Development"
@@ -237,7 +246,7 @@ Cohesion: 0.18
 Nodes (10): Basic Usage, Common Pitfalls, CSS-First Configuration, Dark Mode, Documentation, Import Syntax, Replaced Utilities, Spacing (+2 more)
 
 ### Community 30 - "Advanced Query Best Practices"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Advanced Query Best Practices, Combine Related Counts with Conditional Aggregates, Compare `whereHas()` with an `IN` Subquery, Consider a Correlated Subquery for Has-Many Ordering, Create Dynamic Relationships with a Subquery Foreign Key, Design Composite Indexes for the Query, Measure Two Simple Queries Against One Complex Query, Reuse Loaded Parent Models with `setRelation()` (+1 more)
 
 ### Community 31 - "Migration Best Practices"
@@ -296,9 +305,9 @@ Nodes (5): Consistency First, Decision Rules, How to Apply, Laravel Best Practic
 Cohesion: 0.25
 Nodes (7): Blade and View Best Practices, Prefer Components for Explicit Interfaces, Return Blade Fragments for Partial Rendering, Share Compatible View Data with a View Composer, Share Parent Component Props with `@aware`, Use `$attributes->merge()` in Component Templates, Use `@pushOnce` for Per-Component Scripts
 
-### Community 45 - "Error Handling Best Practices"
-Cohesion: 0.10
-Nodes (15): Add Context to Exception Classes, Choose Where to Report and Render Exceptions, Define JSON Rendering for API Routes, Error Handling Best Practices, Mark Exceptions the Handler Should Not Report, Prevent Duplicate Reports of One Exception Instance, Throttle High-Volume Exception Reports, GenerationPrompt (+7 more)
+### Community 45 - "GenerationTest.php"
+Cohesion: 0.06
+Nodes (19): GenerationProviderInterface, GenerationResult, GenerationService, InvalidProviderResponseException, OpenAIGenerationProvider, GenerationPrompt, PromptComposer, Add Context to Exception Classes (+11 more)
 
 ### Community 46 - "Task Scheduling Best Practices"
 Cohesion: 0.25
@@ -321,7 +330,7 @@ Cohesion: 0.22
 Nodes (8): Caching Best Practices, Configure Failover Cache Stores in Production, Consider `Cache::flexible()` for Stale-While-Revalidate, Use `Cache::add()` for Atomic Conditional Writes, Use `Cache::memo()` to Avoid Redundant Hits Within an Execution, Use `Cache::remember()` for Cache-Aside Reads, Use Cache Tags to Invalidate Related Groups, Use `once()` for In-Process Memoization
 
 ### Community 51 - "Test Suite Performance"
-Cohesion: 0.33
+Cohesion: 0.29
 Nodes (6): Common Errors, Global Fakes, How to Find a Slow Test, How to Run the Suite in Parallel, Test Environment, Test Suite Performance
 
 ### Community 52 - "Task Scheduling Best Practices"
@@ -352,13 +361,21 @@ Nodes (6): Assert the Delivery Mode, Dispatch Queued Mail After Commit, Mail Bes
 Cohesion: 0.29
 Nodes (6): Keep Controllers Focused on HTTP Concerns, Organize Controllers Around Resources, Routing and Controller Best Practices, Scope Nested Bindings, Use Implicit Route Model Binding, Use Resource Routes for Resourceful Actions
 
+### Community 59 - "Brand"
+Cohesion: 0.09
+Nodes (18): AuthController, BrandController, ContextController, Controller, DraftController, GenerationController, KnowledgeEntryController, PromptController (+10 more)
+
 ### Community 60 - "Validation and Forms Best Practices"
 Cohesion: 0.29
 Nodes (6): Add Cross-Field Validation After Base Rules, Express Conditional Rules Clearly, Extract Validation When It Improves the Boundary, Prefer Readable Rule Syntax, Use Only Intended Validated Data, Validation and Forms Best Practices
 
-### Community 62 - "User"
-Cohesion: 0.06
-Nodes (25): Convention and Style Best Practices, Follow Project Naming Conventions, Keep Presentation Code Maintainable, Prefer Clear, Idiomatic Syntax, Use Utilities When They Clarify Intent, Write Comments That Explain Why, User, Convention and Style Best Practices (+17 more)
+### Community 61 - "User"
+Cohesion: 0.27
+Nodes (5): User, Illuminate\Database\Eloquent\Attributes\Hidden, Illuminate\Database\Eloquent\Relations\BelongsToMany, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
+
+### Community 63 - "Convention and Style Best Practices"
+Cohesion: 0.29
+Nodes (6): Convention and Style Best Practices, Follow Project Naming Conventions, Keep Presentation Code Maintainable, Prefer Clear, Idiomatic Syntax, Use Utilities When They Clarify Intent, Write Comments That Explain Why
 
 ### Community 64 - "Collection Best Practices"
 Cohesion: 0.29
@@ -376,49 +393,65 @@ Nodes (6): Assert the Delivery Mode, Dispatch Queued Mail After Commit, Mail Bes
 Cohesion: 0.29
 Nodes (6): Keep Controllers Focused on HTTP Concerns, Organize Controllers Around Resources, Routing and Controller Best Practices, Scope Nested Bindings, Use Implicit Route Model Binding, Use Resource Routes for Resourceful Actions
 
+### Community 68 - "Convention and Style Best Practices"
+Cohesion: 0.29
+Nodes (6): Convention and Style Best Practices, Follow Project Naming Conventions, Keep Presentation Code Maintainable, Prefer Clear, Idiomatic Syntax, Use Utilities When They Clarify Intent, Write Comments That Explain Why
+
 ### Community 69 - "Validation and Forms Best Practices"
 Cohesion: 0.29
 Nodes (6): Add Cross-Field Validation After Base Rules, Express Conditional Rules Clearly, Extract Validation When It Improves the Boundary, Prefer Readable Rule Syntax, Use Only Intended Validated Data, Validation and Forms Best Practices
 
+### Community 70 - "TestCase"
+Cohesion: 0.47
+Nodes (3): ExampleTest, TestCase, Illuminate\Foundation\Testing\TestCase
+
 ### Community 72 - "Configuration Best Practices"
 Cohesion: 0.33
 Nodes (5): Configuration Best Practices, Name Repeated Domain Values, Protect Production Secrets, Read Environment Variables in Configuration Files, Use `App::environment()` for Environment Checks
-
-### Community 73 - "Test Suite Performance"
-Cohesion: 0.33
-Nodes (6): Common Errors, Global Fakes, How to Find a Slow Test, How to Run the Suite in Parallel, Test Environment, Test Suite Performance
 
 ### Community 75 - "Configuration Best Practices"
 Cohesion: 0.33
 Nodes (5): Configuration Best Practices, Name Repeated Domain Values, Protect Production Secrets, Read Environment Variables in Configuration Files, Use `App::environment()` for Environment Checks
 
 ### Community 77 - "Reviewing Tests"
-Cohesion: 0.33
-Nodes (5): Assertions, Coverage, Names and Structure, Reviewing Tests, Test Value
+Cohesion: 0.29
+Nodes (6): Assertions, Coverage, Data and Determinism, Names and Structure, Reviewing Tests, Test Value
 
 ### Community 79 - "logging.php"
 Cohesion: 0.40
 Nodes (4): Monolog\Handler\NullHandler, Monolog\Handler\StreamHandler, Monolog\Handler\SyslogUdpHandler, Monolog\Processor\PsrLogMessageProcessor
 
+### Community 84 - "Test Suite Performance"
+Cohesion: 0.29
+Nodes (6): Common Errors, Global Fakes, How to Find a Slow Test, How to Run the Suite in Parallel, Test Environment, Test Suite Performance
+
+### Community 114 - "Naming and Structure"
+Cohesion: 0.33
+Nodes (5): File Layout, Grouping, Naming and Structure, Naming Tests, Test Class and Methods
+
+### Community 119 - "Error Handling Best Practices"
+Cohesion: 0.25
+Nodes (7): Add Context to Exception Classes, Choose Where to Report and Render Exceptions, Define JSON Rendering for API Routes, Error Handling Best Practices, Mark Exceptions the Handler Should Not Report, Prevent Duplicate Reports of One Exception Instance, Throttle High-Volume Exception Reports
+
 ## Knowledge Gaps
-- **516 isolated node(s):** `php`, `$schema`, `name`, `type`, `description` (+511 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 626 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **36 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **522 isolated node(s):** `php`, `$schema`, `name`, `type`, `description` (+517 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 643 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **39 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `ContextRetrievalTest`, `ContextSnapshot`, `UserFactory.php`, `Brand`, `PromptAssemblyTest`?**
-  _High betweenness centrality (0.316) - this node is a cross-community bridge._
+- **Why does `User` connect `User` to `ContextRetrievalTest`, `ContextPackage`, `Convention and Style Best Practices`, `KnowledgeEntry`, `KnowledgeManagementTest`, `GenerationTest.php`, `Illuminate\Database\Eloquent\Factories\Factory`, `Illuminate\Foundation\Testing\LazilyRefreshDatabase`, `Illuminate\Database\Seeder`, `PromptAssemblyTest`, `Brand`, `ContextSnapshotTest`, `Convention and Style Best Practices`?**
+  _High betweenness centrality (0.306) - this node is a cross-community bridge._
+- **Why does `Follow Project Naming Conventions` connect `Convention and Style Best Practices` to `User`?**
+  _High betweenness centrality (0.145) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `User` (e.g. with `Follow Project Naming Conventions` and `Follow Project Naming Conventions`) actually correct?**
   _`User` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 6 inferred relationships involving `TestCase` (e.g. with `Test Class and Methods` and `Global Fakes`) actually correct?**
   _`TestCase` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `php`, `$schema`, `name` to the rest of the system?**
-  _516 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _522 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `composer.json` be split into smaller, more focused modules?**
   _Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected._
 - **Should `ContextPackage` be split into smaller, more focused modules?**
-  _Cohesion score 0.0824524312896406 - nodes in this community are weakly interconnected._
-- **Should `Illuminate\Database\Migrations\Migration` be split into smaller, more focused modules?**
-  _Cohesion score 0.08558558558558559 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06745098039215686 - nodes in this community are weakly interconnected._

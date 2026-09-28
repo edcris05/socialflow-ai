@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Services\Generation;
+
+use App\Contracts\GenerationProviderInterface;
+use App\Services\Prompting\GenerationPrompt;
+use Illuminate\Support\Facades\Http;
+use RuntimeException;
+
+class OpenAIGenerationProvider implements GenerationProviderInterface
+{
+    public function generate(GenerationPrompt $prompt): GenerationResult
+    {
+        $key = config('services.openai.api_key');
+        if (! is_string($key) || $key === '') {
+            throw new RuntimeException('OpenAI no está configurado.');
+        }
+
+        $response = Http::baseUrl('https://api.openai.com/v1')->withToken($key)->timeout((int) config('services.openai.timeout', 30))->post('/responses', [
+            'model' => config('services.openai.model'),
+            'input' => $prompt->render(),
+            'max_output_tokens' => (int) config('services.openai.max_output_tokens'),
+            'reasoning' => ['effort' => 'minimal'],
+            'store' => (bool) config('services.openai.store'),
+        ]);
+        if ($response->failed()) {
+            throw new RuntimeException('El proveedor no pudo generar contenido.');
+        }
+        $data = $response->json();
+        $data = is_array($data) ? $data : [];
+        $content = $this->extractOutputText($data);
+        $inputTokens = $this->nullableInt(data_get($data, 'usage.input_tokens'));
+        $cachedInputTokens = $this->nullableInt(data_get($data, 'usage.input_tokens_details.cached_tokens'));
+        $outputTokens = $this->nullableInt(data_get($data, 'usage.output_tokens'));
+        $finishReason = $this->nullableString(data_get($data, 'status'));
+        $providerRequestId = $this->nullableString(data_get($data, 'id'))
+            ?? $this->nullableString($response->header('x-request-id'));
+
+        if ($content === '' || $finishReason !== 'completed') {
+            throw new InvalidProviderResponseException(
+                $this->invalidContentMessage($response->status(), $data),
+                $providerRequestId,
+                $inputTokens,
+                $cachedInputTokens,
+                $outputTokens,
+                $finishReason,
+            );
+        }
+
+        return new GenerationResult($content, 'openai', (string) data_get($data, 'model', config('services.openai.model')), $inputTokens, $cachedInputTokens, $outputTokens, $finishReason, $providerRequestId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractOutputText(array $data): string
+    {
+        $parts = [];
+
+        foreach ($this->items(data_get($data, 'output')) as $item) {
+            if (! is_array($item) || ($item['type'] ?? null) !== 'message') {
+                continue;
+            }
+
+            foreach ($this->items($item['content'] ?? null) as $content) {
+                if (is_array($content) && ($content['type'] ?? null) === 'output_text' && is_string($content['text'] ?? null)) {
+                    $parts[] = $content['text'];
+                }
+            }
+        }
+
+        return trim(implode('', $parts));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function invalidContentMessage(int $httpStatus, array $data): string
+    {
+        $itemTypes = [];
+        $contentTypes = [];
+
+        foreach ($this->items(data_get($data, 'output')) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            if (is_string($item['type'] ?? null)) {
+                $itemTypes[] = $item['type'];
+            }
+            foreach ($this->items($item['content'] ?? null) as $content) {
+                if (is_array($content) && is_string($content['type'] ?? null)) {
+                    $contentTypes[] = $content['type'];
+                }
+            }
+        }
+
+        return sprintf(
+            'El proveedor devolvió contenido inválido. HTTP %d; response_status=%s; incomplete_reason=%s; output_types=%s; content_types=%s; usage=%s.',
+            $httpStatus,
+            $this->nullableString(data_get($data, 'status')) ?? 'missing',
+            $this->nullableString(data_get($data, 'incomplete_details.reason')) ?? 'missing',
+            implode(',', array_unique($itemTypes)) ?: 'missing',
+            implode(',', array_unique($contentTypes)) ?: 'missing',
+            data_get($data, 'usage') === null ? 'missing' : 'present',
+        );
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        return is_int($value) ? $value : null;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function items(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
+    }
+}

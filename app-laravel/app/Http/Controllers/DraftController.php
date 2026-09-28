@@ -6,6 +6,7 @@ use App\Http\Requests\DraftRequest;
 use App\Models\Brand;
 use App\Models\Draft;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class DraftController extends Controller
@@ -39,7 +40,10 @@ class DraftController extends Controller
         $brand = $this->ownedBrand($brand);
         $draft = $brand->drafts()->where('user_id', auth()->id())->whereKey($draft)->firstOrFail();
 
-        return view('drafts.edit', compact('brand', 'draft'));
+        $generationToken = Str::random(40);
+        request()->session()->put('generation-tokens.'.$generationToken, ['brand_id' => (string) $brand->getKey(), 'draft_id' => (string) $draft->getKey(), 'user_id' => (string) request()->user()->getKey()]);
+
+        return view('drafts.edit', compact('brand', 'draft', 'generationToken'));
     }
 
     public function update(DraftRequest $request, Brand $brand, Draft $draft): RedirectResponse

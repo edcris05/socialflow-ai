@@ -3,6 +3,13 @@
         <p class="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">{{ $brand->name }}</p>
         <h1 class="mt-2 text-3xl font-semibold">Editar borrador</h1>
 
+        @if (session('status'))
+            <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ session('error') }}</div>
+        @endif
+
         @if ($draft->contextSnapshot)
             <section class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
                 <h2 class="text-lg font-semibold">Contexto capturado</h2>
@@ -40,6 +47,14 @@
 
         @if ($draft->contextSnapshot)
             <a href="{{ route('marcas.borradores.prompt.preview', [$brand, $draft]) }}" class="mt-6 inline-block rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Ver prompt</a>
+        @endif
+        @if ($draft->contextSnapshot)
+            <form action="{{ route('marcas.borradores.generar', [$brand, $draft]) }}" method="POST" class="mt-6">
+                @csrf
+                <input type="hidden" name="generation_token" value="{{ $generationToken ?? '' }}">
+                @if ($draft->generationRuns()->where('status', 'succeeded')->exists()) <input type="hidden" name="regenerate" value="1"> @endif
+                <button class="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white">{{ $draft->generationRuns()->where('status', 'succeeded')->exists() ? 'Generar nuevamente' : 'Generar contenido' }}</button>
+            </form>
         @endif
         <form action="{{ route('marcas.borradores.update', [$brand, $draft]) }}" method="POST" class="mt-8">
             @method('PUT')
