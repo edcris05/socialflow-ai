@@ -2,6 +2,7 @@
 
 namespace App\Services\Generation;
 
+use App\Contracts\GenerationEvaluatorInterface;
 use App\Contracts\GenerationProviderInterface;
 use App\Models\Draft;
 use App\Models\GenerationRun;
@@ -12,7 +13,11 @@ use Throwable;
 
 class GenerationService
 {
-    public function __construct(private GenerationProviderInterface $provider, private PromptComposer $composer) {}
+    public function __construct(
+        private GenerationProviderInterface $provider,
+        private PromptComposer $composer,
+        private GenerationEvaluatorInterface $evaluator,
+    ) {}
 
     public function generate(Draft $draft, User $user, bool $regenerate = false): GenerationRun
     {
@@ -27,22 +32,52 @@ class GenerationService
                 return $latest;
             }
 
-            return GenerationRun::create(['brand_id' => $draft->brand_id, 'draft_id' => $draft->getKey(), 'context_snapshot_id' => $snapshot->getKey(), 'user_id' => $user->getKey(), 'provider' => 'openai', 'model' => (string) config('services.openai.model'), 'operation' => 'draft_content', 'status' => 'pending']);
+            return GenerationRun::create([
+                'brand_id' => $draft->brand_id,
+                'draft_id' => $draft->getKey(),
+                'context_snapshot_id' => $snapshot->getKey(),
+                'user_id' => $user->getKey(),
+                'provider' => 'openai',
+                'model' => (string) config('services.openai.model'),
+                'operation' => 'draft_content',
+                'status' => 'pending',
+            ]);
         });
         if ($run->status !== 'pending') {
             return $run;
         }
 
         $run->update(['status' => 'running']);
+
         try {
             $result = $this->provider->generate($this->composer->compose($run->contextSnapshot));
             if (trim($result->content) === '') {
                 throw new \RuntimeException('El proveedor devolvió contenido inválido.');
             }
+
             DB::transaction(function () use ($run, $result): void {
                 $lockedRun = GenerationRun::query()->lockForUpdate()->findOrFail($run->getKey());
-                $lockedRun->draft()->update(['content' => $result->content]);
-                $lockedRun->update(['status' => 'succeeded', 'provider' => $result->provider, 'model' => $result->model, 'input_tokens' => $result->inputTokens, 'cached_input_tokens' => $result->cachedInputTokens, 'output_tokens' => $result->outputTokens, 'estimated_cost_usd' => $this->estimatedCost($result), 'provider_request_id' => $result->providerRequestId, 'finish_reason' => $result->finishReason, 'error' => null]);
+                $generatedContent = $result->content;
+                $evaluation = $this->evaluator->evaluate($generatedContent, $lockedRun->contextSnapshot);
+
+                $lockedRun->draft()->update(['content' => $generatedContent]);
+                $lockedRun->update([
+                    'status' => 'succeeded',
+                    'generated_content' => $generatedContent,
+                    'provider' => $result->provider,
+                    'model' => $result->model,
+                    'input_tokens' => $result->inputTokens,
+                    'cached_input_tokens' => $result->cachedInputTokens,
+                    'output_tokens' => $result->outputTokens,
+                    'estimated_cost_usd' => $this->estimatedCost($result),
+                    'provider_request_id' => $result->providerRequestId,
+                    'finish_reason' => $result->finishReason,
+                    'error' => null,
+                    'evaluation_status' => $evaluation->status,
+                    'evaluation_violations' => $evaluation->violations,
+                    'evaluation_warnings' => $evaluation->warnings,
+                    'evaluated_at' => now(),
+                ]);
             });
         } catch (Throwable $exception) {
             $failure = ['status' => 'failed', 'error' => $this->safeError($exception)];

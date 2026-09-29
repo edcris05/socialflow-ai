@@ -141,6 +141,10 @@ Se espera `sessions` en la primera consulta y una respuesta HTTP que no sea `500
 - El punto de extensión futuro es `TextKnowledgeRetriever` -> `VectorKnowledgeRetriever` o `HybridKnowledgeRetriever`; no se implementan aún embeddings, pgvector, OpenAI, FastAPI ni Meta.
 - Para probarlo: iniciar sesión, abrir una marca, elegir `Preparar contenido` y consultar `Quiero promocionar stickers resistentes al agua`. Revisar entradas, políticas, fuentes y advertencias antes de crear un borrador.
 - OpenAI Generation v1 uses Responses API only to generate a draft from its historical ContextSnapshot. Local configuration stays in .env and is documented with safe placeholders in app-laravel/.env.example: OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_OUTPUT_TOKENS, OPENAI_STORE, OPENAI_TIMEOUT, and the three per-million token prices. Never commit or share the API key.
-- The minimal generation request contains model, historical prompt, max_output_tokens=500, reasoning.effort=minimal, and store=false. It has no tools, web search, images, agents, or Meta.
+- The minimal generation request contains model, historical prompt, max_output_tokens=750, reasoning.effort=minimal, and store=false. It has no tools, web search, images, agents, or Meta.
 - Do not add FastAPI, socialflow_ai, pgvector, Meta, or generation capabilities outside this flow yet.
 - La futura segunda base `socialflow_ai` se creará en la misma instancia PostgreSQL DDEV solo cuando se incorpore el servicio FastAPI.
+
+- Generation Guardrails & Evaluation v1 evaluates each successful GenerationRun deterministically from its historical ContextSnapshot. `passed` means no automatic rule violation was detected; it does not mean every factual claim was verified.
+- Successful GenerationRuns persist the exact evaluated provider output in `generated_content`, independently from the mutable Draft content. Historical runs created before this column intentionally keep `generated_content=NULL`; they are not backfilled because a later regeneration may already have replaced the Draft content.
+- v1 does not infer unsupported product use cases (for example, cups or bottles) and cannot detect a private address unless that exact value is available in structured snapshot data. Those remain future factual-grounding and privacy-guardrail work.

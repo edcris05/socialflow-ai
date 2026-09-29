@@ -10,6 +10,27 @@
             <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ session('error') }}</div>
         @endif
 
+        @if ($latestGenerationRun?->evaluation_status === 'requires_review')
+            <section class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+                <h2 class="text-lg font-semibold">Evaluacion del contenido</h2>
+                <p class="mt-1 text-xs text-amber-700">Generacion {{ $latestGenerationRun->getKey() }} &middot; {{ $latestGenerationRun->created_at->format('d/m/Y H:i') }}</p>
+                <p class="mt-2 font-medium">Requiere revision</p>
+                <ul class="mt-3 list-inside list-disc space-y-1">
+                    @foreach ($latestGenerationRun->evaluation_violations ?? [] as $violation)
+                        <li>{{ $violation['message'] }}</li>
+                    @endforeach
+                </ul>
+                <p class="mt-3 text-amber-800">El contenido se conserva para que puedas revisarlo y editarlo.</p>
+            </section>
+        @elseif ($latestGenerationRun?->evaluation_status === 'passed')
+            <section class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
+                <h2 class="text-lg font-semibold">Evaluacion del contenido</h2>
+                <p class="mt-1 text-xs text-emerald-700">Generacion {{ $latestGenerationRun->getKey() }} &middot; {{ $latestGenerationRun->created_at->format('d/m/Y H:i') }}</p>
+                <p class="mt-2">Sin alertas automaticas detectadas.</p>
+                <p class="mt-2 text-emerald-800">Esto no verifica todas las afirmaciones factuales del contenido.</p>
+            </section>
+        @endif
+
         @if ($draft->contextSnapshot)
             <section class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
                 <h2 class="text-lg font-semibold">Contexto capturado</h2>

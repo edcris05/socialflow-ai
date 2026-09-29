@@ -57,6 +57,7 @@ class GenerationTest extends TestCase
         $this->assertArrayHasKey('api_key', $configuration);
         $this->assertArrayHasKey('model', $configuration);
         $this->assertArrayHasKey('max_output_tokens', $configuration);
+        $this->assertSame(750, $configuration['max_output_tokens']);
         $this->assertArrayHasKey('store', $configuration);
         $this->assertArrayHasKey('timeout', $configuration);
         $this->assertSame(['input', 'cached_input', 'output'], array_keys($configuration['pricing']));
@@ -77,6 +78,8 @@ class GenerationTest extends TestCase
         $this->assertSame(1, $this->calls);
         $this->assertSame('Texto generado', $d->fresh()->content);
         $this->assertSame('succeeded', $run->status);
+        $this->assertSame('Texto generado', $run->generated_content);
+        $this->assertSame($run->generated_content, $d->fresh()->content);
         $this->assertSame($s->id, $run->context_snapshot_id);
         $this->assertSame(1000, $run->input_tokens);
         $this->assertSame(400, $run->cached_input_tokens);
@@ -149,7 +152,7 @@ class GenerationTest extends TestCase
     {
         config()->set('services.openai.api_key', 'sk-test');
         config()->set('services.openai.model', 'gpt-5-mini');
-        config()->set('services.openai.max_output_tokens', 500);
+        config()->set('services.openai.max_output_tokens', 750);
         config()->set('services.openai.store', false);
         Http::preventStrayRequests();
         Http::fake(['https://api.openai.com/v1/responses' => Http::response(['id' => 'resp_x', 'model' => 'gpt-5-mini', 'status' => 'completed', 'output' => [['type' => 'reasoning', 'content' => [['type' => 'reasoning_text', 'text' => 'No usar']]], ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => 'Hola']]]], 'usage' => ['input_tokens' => 10, 'input_tokens_details' => ['cached_tokens' => 3], 'output_tokens' => 5]])]);
@@ -159,7 +162,7 @@ class GenerationTest extends TestCase
         $this->assertSame('resp_x', $r->providerRequestId);
         $this->assertSame(10, $r->inputTokens);
         $this->assertSame(5, $r->outputTokens);
-        Http::assertSent(fn ($request) => $request['model'] === 'gpt-5-mini' && $request['max_output_tokens'] === 500 && $request['reasoning'] === ['effort' => 'minimal'] && $request['store'] === false && ! isset($request['metadata']) && ! isset($request['tools']));
+        Http::assertSent(fn ($request) => $request['model'] === 'gpt-5-mini' && $request['max_output_tokens'] === 750 && $request['reasoning'] === ['effort' => 'minimal'] && $request['store'] === false && ! isset($request['metadata']) && ! isset($request['tools']));
     }
 
     public function test_incomplete_openai_response_records_token_limit_without_changing_draft(): void
@@ -191,6 +194,9 @@ class GenerationTest extends TestCase
         $this->assertSame('incomplete', $run->finish_reason);
         $this->assertSame(1150, $run->input_tokens);
         $this->assertSame(448, $run->output_tokens);
+        $this->assertSame('not_evaluated', $run->evaluation_status);
+        $this->assertNull($run->generated_content);
+        $this->assertNull($run->evaluated_at);
         $this->assertStringContainsString('incomplete_reason=max_output_tokens', $run->error);
         Http::assertSentCount(1);
     }

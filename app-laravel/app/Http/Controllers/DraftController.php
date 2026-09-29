@@ -41,9 +41,14 @@ class DraftController extends Controller
         $draft = $brand->drafts()->where('user_id', auth()->id())->whereKey($draft)->firstOrFail();
 
         $generationToken = Str::random(40);
-        request()->session()->put('generation-tokens.'.$generationToken, ['brand_id' => (string) $brand->getKey(), 'draft_id' => (string) $draft->getKey(), 'user_id' => (string) request()->user()->getKey()]);
+        request()->session()->put('generation-tokens.'.$generationToken, [
+            'brand_id' => (string) $brand->getKey(),
+            'draft_id' => (string) $draft->getKey(),
+            'user_id' => (string) request()->user()->getKey(),
+        ]);
+        $latestGenerationRun = $draft->generationRuns()->latest()->first();
 
-        return view('drafts.edit', compact('brand', 'draft', 'generationToken'));
+        return view('drafts.edit', compact('brand', 'draft', 'generationToken', 'latestGenerationRun'));
     }
 
     public function update(DraftRequest $request, Brand $brand, Draft $draft): RedirectResponse
