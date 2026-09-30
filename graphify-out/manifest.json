@@ -750,9 +750,9 @@
     "semantic_hash": ""
   },
   "docs/setup-local.md": {
-    "mtime": 1790777604.6516104,
-    "seen": 1790777950.596415,
-    "ast_hash": "e14df81e5097203b0eccd188b025c968",
+    "mtime": 1790794796.5878398,
+    "seen": 1790794810.4049137,
+    "ast_hash": "39b4e09a36ed826e6ab48b5139f521dd",
     "semantic_hash": ""
   },
   "app-laravel/app/Http/Controllers/AuthController.php": {
@@ -1167,6 +1167,36 @@
     "mtime": 1790777604.6496105,
     "seen": 1790777950.595659,
     "ast_hash": "c580221daa335a7a07f8541ea0a95944",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Services/Knowledge/Grounding/FactualClaim.php": {
+    "mtime": 1790794549.5853364,
+    "seen": 1790794810.4040296,
+    "ast_hash": "60065bc3b46eb97976d66292ccd097a8",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Services/Knowledge/Grounding/FactualGroundingEvaluator.php": {
+    "mtime": 1790794675.5438547,
+    "seen": 1790794810.4040341,
+    "ast_hash": "cdc11e4f02192d1af3f1244ec14e9006",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Services/Knowledge/Grounding/GroundingEvaluationResult.php": {
+    "mtime": 1790794549.5963342,
+    "seen": 1790794810.4040384,
+    "ast_hash": "37810b8fe28ad057cc66fa0fd421fe4e",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Services/Knowledge/Grounding/GroundingStatus.php": {
+    "mtime": 1790794549.5903354,
+    "seen": 1790794810.4040425,
+    "ast_hash": "5d5261fc2eba54fc02959212863562d8",
+    "semantic_hash": ""
+  },
+  "app-laravel/tests/Feature/FactualGroundingEvaluatorTest.php": {
+    "mtime": 1790799040.2963188,
+    "seen": 1790799088.7606025,
+    "ast_hash": "133cb056498d35c4522ddd0f304aa286",
     "semantic_hash": ""
   }
 }
