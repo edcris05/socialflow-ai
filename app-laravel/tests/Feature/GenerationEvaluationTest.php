@@ -63,6 +63,24 @@ class GenerationEvaluationTest extends TestCase
         $this->assertSame([], $result->violations);
     }
 
+    public function test_safe_publishable_fallback_is_persisted_and_passes_evaluation(): void
+    {
+        [$user, , $draft] = $this->draftWithSnapshot([
+            'Precio antes de publicacion: requiere confirmacion.',
+            'Stock actual: requiere confirmacion.',
+            'Tiempo de produccion: requiere confirmacion.',
+        ]);
+        $this->generatedContent = "Personalizá tus proyectos con stickers resistentes al agua.\nEscribinos para consultar disponibilidad, precios y tiempos de producción.";
+
+        $run = app(GenerationService::class)->generate($draft, $user);
+
+        $this->assertSame('succeeded', $run->status);
+        $this->assertSame('passed', $run->evaluation_status);
+        $this->assertSame([], $run->evaluation_violations);
+        $this->assertSame($this->generatedContent, $run->generated_content);
+        $this->assertSame($this->generatedContent, $draft->fresh()->content);
+    }
+
     public function test_price_stock_time_and_unsupported_promotion_are_stable_violations(): void
     {
         [, , , $snapshot] = $this->draftWithSnapshot([
@@ -223,6 +241,8 @@ class GenerationEvaluationTest extends TestCase
 
         $this->assertSame(2, $this->providerCalls);
         $this->assertSame(2, GenerationRun::count());
+        $this->assertSame('succeeded', $first->status);
+        $this->assertSame('succeeded', $second->status);
         $this->assertSame($firstOutput, $first->generated_content);
         $this->assertSame('requires_review', $first->evaluation_status);
         $this->assertSame([

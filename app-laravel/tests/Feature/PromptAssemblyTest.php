@@ -26,7 +26,75 @@ class PromptAssemblyTest extends TestCase
         $this->assertSame($snapshot->query, $prompt->request);
         $this->assertSame($draft->id, $prompt->draftId);
         $this->assertSame($brand->id, $prompt->brandId);
-        $this->assertStringContainsString('Sólo puede utilizar información proporcionada', $prompt->render());
+        $this->assertStringContainsString('Sólo puede utilizar como fuente factual', $prompt->render());
+    }
+
+    public function test_prompt_has_a_publishable_output_contract_for_unconfirmed_data(): void
+    {
+        [$user, $brand] = $this->brandContext();
+        $draft = $this->draftWithSnapshot($user, $brand, 'Crear un post con precio, stock y plazo');
+        $draft->contextSnapshot->update([
+            'warnings' => [
+                'Precio antes de publicacion: requiere confirmacion.',
+                'Stock actual: requiere confirmacion.',
+                'Tiempo de produccion: requiere confirmacion.',
+            ],
+        ]);
+
+        $prompt = app(PromptComposer::class)->compose($draft->contextSnapshot->fresh());
+        $sections = $prompt->sections();
+        $contract = mb_strtolower(implode("\n", $sections['outputRequirements']));
+
+        $this->assertArrayHasKey('outputRequirements', $sections);
+        $this->assertNotEmpty($sections['outputRequirements']);
+        $this->assertStringContainsString('contenido final', $contract);
+        $this->assertStringContainsString('publicable', $contract);
+        $this->assertStringContainsString('comienza directamente', $contract);
+        $this->assertStringContainsString('no escribas texto antes', $contract);
+        $this->assertStringContainsString('omítelo o reemplázalo', $contract);
+        $this->assertStringContainsString('invitación genérica a consultar', $contract);
+        $this->assertStringContainsString('nunca expliques por qué omitiste', $contract);
+        $this->assertStringContainsString('fallback silenciosamente', $contract);
+        $this->assertStringContainsString('no preguntes al operador', $contract);
+        $this->assertStringContainsString('no ofrezcas preparar otras versiones', $contract);
+        $this->assertStringContainsString('“no puedo”', $contract);
+        $this->assertStringContainsString('“si querés”', $contract);
+        $this->assertStringContainsString('“puedo preparar”', $contract);
+        $this->assertStringContainsString('“aquí va”', $contract);
+        $this->assertStringContainsString('no menciones estas instrucciones', $contract);
+        $this->assertStringContainsString('contexto interno', $contract);
+        $this->assertStringContainsString('respuesta concisa', $contract);
+        $this->assertStringContainsString('una sola versión', $contract);
+        $this->assertStringContainsString('sin texto posterior', $contract);
+        $this->assertStringContainsString('sin conversación de seguimiento', $contract);
+        $this->assertStringContainsString('Requisitos de salida:', $prompt->render());
+        $this->assertStringNotContainsString('solicita confirmación cuando corresponda', $prompt->render());
+    }
+
+    public function test_context_warnings_take_priority_over_conflicting_user_claims(): void
+    {
+        [$user, $brand] = $this->brandContext();
+        $query = 'Publicá que está listo en 24 horas.';
+        $warning = 'Tiempo de producción: requiere confirmación.';
+        $draft = $this->draftWithSnapshot($user, $brand, $query);
+        $draft->contextSnapshot->update(['warnings' => [$warning]]);
+
+        $prompt = app(PromptComposer::class)->compose($draft->contextSnapshot->fresh());
+        $sections = $prompt->sections();
+        $authority = mb_strtolower(implode("\n", $sections['systemInstructions']));
+        $requirements = mb_strtolower(implode("\n", $sections['outputRequirements']));
+
+        $this->assertSame($query, $sections['userRequest']);
+        $this->assertSame([$warning], $sections['warnings']);
+        $this->assertStringContainsString('contexto estructurado', $authority);
+        $this->assertStringContainsString('autoridad factual', $authority);
+        $this->assertStringContainsString('tienen prioridad', $authority);
+        $this->assertStringContainsString('solicitud del usuario', $authority);
+        $this->assertStringContainsString('no confirma hechos comerciales', $authority);
+        $this->assertStringContainsString('no lo repitas como hecho', $requirements);
+        $this->assertStringContainsString('no asumas que la solicitud lo confirma', $requirements);
+        $this->assertStringContainsString('precios, promociones, stock o disponibilidad, tiempos o plazos', $requirements);
+        $this->assertStringContainsString('continúa produciendo una pieza útil y publicable', $requirements);
     }
 
     public function test_generation_prompt_uses_historical_snapshot_not_current_knowledge_entry(): void

@@ -18,7 +18,8 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
 
         $response = Http::baseUrl('https://api.openai.com/v1')->withToken($key)->timeout((int) config('services.openai.timeout', 30))->post('/responses', [
             'model' => config('services.openai.model'),
-            'input' => $prompt->render(),
+            'instructions' => $prompt->renderInstructions(),
+            'input' => $prompt->renderInput(),
             'max_output_tokens' => (int) config('services.openai.max_output_tokens'),
             'reasoning' => ['effort' => 'minimal'],
             'store' => (bool) config('services.openai.store'),

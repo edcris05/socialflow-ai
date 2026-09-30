@@ -47,7 +47,7 @@ class ArtMadeKnowledgeSeeder extends Seeder
             ],
             [
                 'title' => 'Identidad visual de la marca',
-                'content' => 'La identidad visual de Art Made to Print utiliza como colores principales rosa pastel y celeste pastel, acompañados por colores pastel que combinen con blanco.\n\nSe busca una estética limpia, visual, legible, creativa y adecuada para Instagram, evitando el exceso de texto y manteniendo coherencia entre el logo, publicaciones, historias y demás piezas de comunicación.\n\nNo hay códigos HEX aprobados todavía.',
+                'content' => 'Los colores rosa pastel y celeste pastel forman parte de la identidad visual de Art Made to Print y se utilizan en el logo y la comunicación institucional de la marca. Esta paleta no limita los colores de los productos personalizados, stickers, impresiones ni diseños para clientes. Los trabajos personalizados pueden utilizar otros colores según el diseño y el pedido.\n\nSe busca una estética limpia, visual, legible, creativa y adecuada para Instagram, evitando el exceso de texto y manteniendo coherencia entre el logo, publicaciones, historias y demás piezas de comunicación de la marca.\n\nNo hay códigos HEX aprobados todavía.',
                 'source' => 'Información proporcionada por la dueña',
                 'category' => 'brand_identity',
             ],

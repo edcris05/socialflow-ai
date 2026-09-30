@@ -5,16 +5,17 @@ namespace App\Services\Prompting;
 final class GenerationPrompt
 {
     /**
-        * @param array<int, string> $systemInstructions
-    * @param array<int, array<string, mixed>> $relevantKnowledge
-     * @param array<int, array<string, mixed>> $brandContext
-     * @param array<int, array<string, mixed>> $policies
-     * @param array<int, array<string, mixed>> $restrictions
-     * @param array<int, array<string, mixed>> $pendingKnowledge
-     * @param array<int, string> $sources
-     * @param array<int, string> $warnings
-     * @param array<int, string> $missingInformation
-     * @param array<string, mixed> $metadata
+     * @param  array<int, string>  $systemInstructions
+     * @param  array<int, string>  $outputRequirements
+     * @param  array<int, array<string, mixed>>  $relevantKnowledge
+     * @param  array<int, array<string, mixed>>  $brandContext
+     * @param  array<int, array<string, mixed>>  $policies
+     * @param  array<int, array<string, mixed>>  $restrictions
+     * @param  array<int, array<string, mixed>>  $pendingKnowledge
+     * @param  array<int, string>  $sources
+     * @param  array<int, string>  $warnings
+     * @param  array<int, string>  $missingInformation
+     * @param  array<string, mixed>  $metadata
      */
     public function __construct(
         public string $request,
@@ -22,6 +23,7 @@ final class GenerationPrompt
         public string $brandId,
         public string $userId,
         public array $systemInstructions = [],
+        public array $outputRequirements = [],
         public array $relevantKnowledge = [],
         public array $brandContext = [],
         public array $policies = [],
@@ -37,6 +39,7 @@ final class GenerationPrompt
     {
         return [
             'systemInstructions' => $this->systemInstructions,
+            'outputRequirements' => $this->outputRequirements,
             'userRequest' => $this->request,
             'brandContext' => $this->brandContext,
             'relevantKnowledge' => $this->relevantKnowledge,
@@ -50,9 +53,22 @@ final class GenerationPrompt
 
     public function render(): string
     {
-        $lines = [
+        return implode("\n\n", [$this->renderInstructions(), $this->renderInput()]);
+    }
+
+    public function renderInstructions(): string
+    {
+        return implode("\n\n", [
             'Instrucciones del sistema:',
             implode("\n", array_map(fn (string $instruction): string => '- '.$instruction, $this->systemInstructions)),
+            'Requisitos de salida:',
+            implode("\n", array_map(fn (string $requirement): string => '- '.$requirement, $this->outputRequirements)),
+        ]);
+    }
+
+    public function renderInput(): string
+    {
+        $lines = [
             'Solicitud: '.$this->request,
             'Contexto de marca:',
         ];
@@ -90,8 +106,6 @@ final class GenerationPrompt
             $lines[] = 'Fuentes:';
             $lines[] = implode("\n", array_map(fn (string $source): string => '- '.$source, $this->sources));
         }
-
-        $lines[] = 'No inventes información ni nombres de productos que no estén documentados en el contexto.';
 
         return implode("\n\n", $lines);
     }

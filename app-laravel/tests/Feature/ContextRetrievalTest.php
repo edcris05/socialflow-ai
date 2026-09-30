@@ -7,6 +7,7 @@ use App\Models\KnowledgeEntry;
 use App\Models\User;
 use App\Services\Knowledge\ContextBuilder;
 use App\Services\Knowledge\TextKnowledgeRetriever;
+use Database\Seeders\ArtMadeKnowledgeSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\ViewErrorBag;
 use Tests\TestCase;
@@ -86,6 +87,23 @@ class ContextRetrievalTest extends TestCase
 
         $this->assertTrue($package->brandContext->contains('id', $identity->id));
         $this->assertFalse($package->relevantKnowledge->contains('id', $identity->id));
+    }
+
+    public function test_art_made_brand_colors_do_not_limit_product_colors_in_context(): void
+    {
+        $user = User::factory()->create();
+        $brand = Brand::factory()->create(['slug' => 'art-made-to-print']);
+        $brand->users()->attach($user, ['role' => 'owner']);
+        $this->seed(ArtMadeKnowledgeSeeder::class);
+
+        $package = app(ContextBuilder::class)->build($brand, 'Promocionar stickers resistentes al agua');
+        $identity = $package->brandContext->firstWhere('title', 'Identidad visual de la marca');
+
+        $this->assertNotNull($identity);
+        $this->assertStringContainsString('identidad visual', mb_strtolower($identity->content));
+        $this->assertStringContainsString('logo y la comunicación institucional', mb_strtolower($identity->content));
+        $this->assertStringContainsString('no limita los colores de los productos personalizados, stickers, impresiones ni diseños', mb_strtolower($identity->content));
+        $this->assertStringContainsString('pueden utilizar otros colores según el diseño y el pedido', mb_strtolower($identity->content));
     }
 
     public function test_context_preview_renders_escaped_line_breaks_for_relevant_and_brand_context(): void

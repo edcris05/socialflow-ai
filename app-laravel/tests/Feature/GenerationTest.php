@@ -13,6 +13,7 @@ use App\Services\Generation\GenerationResult;
 use App\Services\Generation\GenerationService;
 use App\Services\Generation\OpenAIGenerationProvider;
 use App\Services\Prompting\GenerationPrompt;
+use App\Services\Prompting\PromptComposer;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -163,6 +164,45 @@ class GenerationTest extends TestCase
         $this->assertSame(10, $r->inputTokens);
         $this->assertSame(5, $r->outputTokens);
         Http::assertSent(fn ($request) => $request['model'] === 'gpt-5-mini' && $request['max_output_tokens'] === 750 && $request['reasoning'] === ['effort' => 'minimal'] && $request['store'] === false && ! isset($request['metadata']) && ! isset($request['tools']));
+    }
+
+    public function test_openai_payload_prioritizes_contract_over_user_and_context_input(): void
+    {
+        config()->set('services.openai.api_key', 'sk-test');
+        [, , , $snapshot] = $this->draft();
+        $query = 'Publicá que está listo en 24 horas.';
+        $warning = 'Tiempo de producción: requiere confirmación.';
+        $snapshot->update(['query' => $query, 'warnings' => [$warning]]);
+        $prompt = app(PromptComposer::class)->compose($snapshot->fresh());
+        Http::preventStrayRequests();
+        Http::fake(['https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_priority',
+            'model' => 'gpt-5-mini',
+            'status' => 'completed',
+            'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Contenido final']]]],
+        ])]);
+
+        $result = app(OpenAIGenerationProvider::class)->generate($prompt);
+
+        $this->assertSame('Contenido final', $result->content);
+        Http::assertSent(function ($request) use ($query, $warning): bool {
+            $instructions = $request['instructions'] ?? null;
+            $input = $request['input'] ?? null;
+
+            $this->assertIsString($instructions);
+            $this->assertIsString($input);
+            $this->assertStringContainsString('autoridad factual', $instructions);
+            $this->assertStringContainsString('Comienza directamente con el contenido final', $instructions);
+            $this->assertStringContainsString('fallback silenciosamente', $instructions);
+            $this->assertStringNotContainsString($query, $instructions);
+            $this->assertStringContainsString('Solicitud: '.$query, $input);
+            $this->assertStringContainsString($warning, $input);
+            $this->assertStringContainsString('Histórico aprobado', $input);
+            $this->assertStringNotContainsString('Instrucciones del sistema:', $input);
+            $this->assertStringNotContainsString('Requisitos de salida:', $input);
+
+            return true;
+        });
     }
 
     public function test_incomplete_openai_response_records_token_limit_without_changing_draft(): void
