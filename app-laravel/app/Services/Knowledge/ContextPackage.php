@@ -72,7 +72,7 @@ final readonly class ContextPackage
 
     private function entry(KnowledgeEntry $entry): array
     {
-        return $entry->only(['id', 'title', 'content', 'category', 'status', 'source', 'applicability']);
+        return $entry->only(['id', 'title', 'content', 'category', 'status', 'source', 'applicability', 'grounding_metadata']);
     }
 
     private static function entriesFromData(array $entries): Collection

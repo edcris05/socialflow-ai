@@ -28,6 +28,21 @@ class ArtMadeCommercialKnowledgeSeeder extends Seeder
                 'title' => 'Precios de stickers',
                 'content' => 'Stickers en hoja A4:\n\n- Adhesivo normal: $3.500 por hoja A4.\n- Adhesivo resistente al agua: $4.500 por hoja A4.\n- Sticker individual: $500 cada uno.\n\nActualmente no existe un tamaño estándar o máximo confirmado para los stickers individuales.\n\nRegla comercial: consultar antes de publicar precios en redes sociales.',
                 'source' => 'Información proporcionada por la dueña',
+                'grounding_metadata' => [
+                    'subject' => 'stickers',
+                    'claims' => [
+                        [
+                            'predicate' => 'water_resistance',
+                            'value' => 'resistant',
+                            'phrases' => ['resistentes al agua'],
+                            'evidence_excerpt' => 'Adhesivo resistente al agua',
+                        ],
+                    ],
+                    'allowed_uses' => [
+                        'values' => [],
+                        'coverage' => 'open',
+                    ],
+                ],
             ],
             [
                 'title' => 'Precios de etiquetas',
@@ -155,7 +170,7 @@ class ArtMadeCommercialKnowledgeSeeder extends Seeder
             ]);
 
             $before = $entry->exists
-                ? $entry->only(['title', 'content', 'source', 'status'])
+                ? $entry->only(['title', 'content', 'source', 'status', 'grounding_metadata'])
                 : null;
 
             $entry->fill([
@@ -179,7 +194,7 @@ class ArtMadeCommercialKnowledgeSeeder extends Seeder
                     'user_id' => $user->id,
                     'action' => $before === null ? 'created' : 'updated',
                     'before' => $before,
-                    'after' => $entry->fresh()->only(['title', 'content', 'source', 'status']),
+                    'after' => $entry->fresh()->only(['title', 'content', 'source', 'status', 'grounding_metadata']),
                 ]);
             }
         }

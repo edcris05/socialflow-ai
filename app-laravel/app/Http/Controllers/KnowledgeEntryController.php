@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\KnowledgeEntryRequest;
 use App\Models\Brand;
-use App\Models\KnowledgeAudit;
 use App\Models\KnowledgeEntry;
+use App\Services\Knowledge\GroundingEvidenceValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use InvalidArgumentException;
 
 class KnowledgeEntryController extends Controller
 {
@@ -46,7 +48,7 @@ class KnowledgeEntryController extends Controller
         $entry->updated_by = $request->user()->id;
         $entry->save();
 
-        $this->audit($entry, $request, 'created', null, $entry->fresh()->only(['title', 'content', 'source', 'status']));
+        $this->audit($entry, $request, 'created', null, $entry->fresh()->only(['title', 'content', 'source', 'status', 'grounding_metadata']));
 
         return to_route('marcas.conocimiento.show', [$brand, $entry])
             ->with('status', 'El conocimiento fue creado.');
@@ -68,16 +70,23 @@ class KnowledgeEntryController extends Controller
         return view('knowledge.edit', compact('brand', 'entry'));
     }
 
-    public function update(KnowledgeEntryRequest $request, Brand $brand, KnowledgeEntry $knowledgeEntry): RedirectResponse
+    public function update(KnowledgeEntryRequest $request, Brand $brand, KnowledgeEntry $knowledgeEntry, GroundingEvidenceValidator $evidenceValidator): RedirectResponse
     {
         $brand = $this->ownedBrand($brand);
         $entry = $this->ownedEntry($brand, $knowledgeEntry);
-        $before = $entry->only(['title', 'content', 'source', 'status']);
+        $before = $entry->only(['title', 'content', 'source', 'status', 'grounding_metadata']);
         $entry->fill($request->validated());
+
+        try {
+            $evidenceValidator->validate($entry->grounding_metadata, (string) $entry->content);
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages(['content' => $exception->getMessage()]);
+        }
+
         $entry->updated_by = $request->user()->id;
         $entry->save();
 
-        $this->audit($entry, $request, 'updated', $before, $entry->fresh()->only(['title', 'content', 'source', 'status']));
+        $this->audit($entry, $request, 'updated', $before, $entry->fresh()->only(['title', 'content', 'source', 'status', 'grounding_metadata']));
 
         return to_route('marcas.conocimiento.show', [$brand, $entry])
             ->with('status', 'El conocimiento fue actualizado.');

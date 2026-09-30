@@ -750,9 +750,9 @@
     "semantic_hash": ""
   },
   "docs/setup-local.md": {
-    "mtime": 1790726782.2625253,
-    "seen": 1790726940.3285434,
-    "ast_hash": "ba8becb86f95ef31deceebd03bc836d8",
+    "mtime": 1790777604.6516104,
+    "seen": 1790777950.596415,
+    "ast_hash": "e14df81e5097203b0eccd188b025c968",
     "semantic_hash": ""
   },
   "app-laravel/app/Http/Controllers/AuthController.php": {
@@ -798,10 +798,10 @@
     "semantic_hash": ""
   },
   "app-laravel/app/Http/Controllers/KnowledgeEntryController.php": {
-    "mtime": 1790084691.9905195,
-    "seen": 1790210649.9497964,
-    "ast_hash": "098845fc7e8a1ded43d8d8b40f46ad08",
-    "semantic_hash": "098845fc7e8a1ded43d8d8b40f46ad08"
+    "mtime": 1790777604.6496105,
+    "seen": 1790777950.595539,
+    "ast_hash": "81d44af95edb8e7dcf25a05bd7f6fd33",
+    "semantic_hash": ""
   },
   "app-laravel/app/Http/Requests/DraftRequest.php": {
     "mtime": 1790084691.9905195,
@@ -828,9 +828,9 @@
     "semantic_hash": "a48b765f09fd77c0132405a453d2c9a1"
   },
   "app-laravel/app/Models/KnowledgeEntry.php": {
-    "mtime": 1790343788.4768693,
-    "seen": 1790346568.8607962,
-    "ast_hash": "e44fc01ef4c08a273b1a0ba21d42dd7f",
+    "mtime": 1790777604.6496105,
+    "seen": 1790777950.5956016,
+    "ast_hash": "65119a9f65215a90585deab225dfaa38",
     "semantic_hash": ""
   },
   "app-laravel/database/migrations/2026_09_22_000000_create_knowledge_entries_table.php": {
@@ -906,15 +906,15 @@
     "semantic_hash": "e228959e16dbdd56709ba71323e993c0"
   },
   "app-laravel/tests/Feature/KnowledgeManagementTest.php": {
-    "mtime": 1790084692.0065224,
-    "seen": 1790210649.9525254,
-    "ast_hash": "e23a39a0922540addc0073b4cd6c7ed9",
-    "semantic_hash": "e23a39a0922540addc0073b4cd6c7ed9"
+    "mtime": 1790779430.038225,
+    "seen": 1790792037.3211648,
+    "ast_hash": "769ab14bab19517f75af55fe355ee75c",
+    "semantic_hash": ""
   },
   "app-laravel/database/seeders/ArtMadeKnowledgeSeeder.php": {
-    "mtime": 1790726820.0156057,
-    "seen": 1790726940.3278627,
-    "ast_hash": "b578748d20f7f12e3611e60aa4b8455e",
+    "mtime": 1790776057.1650748,
+    "seen": 1790776614.0255315,
+    "ast_hash": "452145bf1bcd01836c1b84a914aaf462",
     "semantic_hash": ""
   },
   "app-laravel/database/seeders/ConsolidateArtMadeKnowledgeSeeder.php": {
@@ -924,10 +924,10 @@
     "semantic_hash": "5d7e3ec20fe8078d9e8afc2ed5c7bf69"
   },
   "app-laravel/database/seeders/ArtMadeCommercialKnowledgeSeeder.php": {
-    "mtime": 1790208678.7468503,
-    "seen": 1790210649.9516904,
-    "ast_hash": "576f6d2dddc2eeaa784aaad2d3f41e27",
-    "semantic_hash": "576f6d2dddc2eeaa784aaad2d3f41e27"
+    "mtime": 1790776057.1660752,
+    "seen": 1790776614.0255272,
+    "ast_hash": "8349100b99d9d96dc8a3eced6aa71d97",
+    "semantic_hash": ""
   },
   "app-laravel/app/Http/Controllers/ContextController.php": {
     "mtime": 1790352663.852572,
@@ -948,9 +948,9 @@
     "semantic_hash": "48e621e1477ff554a0c17eeae8a90171"
   },
   "app-laravel/app/Services/Knowledge/ContextPackage.php": {
-    "mtime": 1790352663.9155726,
-    "seen": 1790352684.543157,
-    "ast_hash": "77c30affef08e5b688e8772297f640d8",
+    "mtime": 1790776057.1640744,
+    "seen": 1790776614.0253184,
+    "ast_hash": "18d1afd28ec915588d01f7f9e8791a5d",
     "semantic_hash": ""
   },
   "app-laravel/app/Services/Knowledge/KnowledgeRetrieverInterface.php": {
@@ -1002,9 +1002,9 @@
     "semantic_hash": "de88be1ec2858549226d6cd64f420fc3"
   },
   "app-laravel/app/Models/ContextSnapshot.php": {
-    "mtime": 1790347329.2467048,
-    "seen": 1790348594.6183484,
-    "ast_hash": "7b607ed1f988414283cc13066be09b51",
+    "mtime": 1790776057.1650748,
+    "seen": 1790776614.0252466,
+    "ast_hash": "49880b61dcbb2220fc6fbbd47af34eb2",
     "semantic_hash": ""
   },
   "app-laravel/database/migrations/2026_09_24_023107_create_context_snapshots_table.php": {
@@ -1014,9 +1014,9 @@
     "semantic_hash": ""
   },
   "app-laravel/tests/Feature/ContextSnapshotTest.php": {
-    "mtime": 1790357948.549701,
-    "seen": 1790364306.6919541,
-    "ast_hash": "1da6c9e5925ec04dabdcd9c7d58e08d4",
+    "mtime": 1790777838.5010102,
+    "seen": 1790777950.596045,
+    "ast_hash": "5d10be7f7bd636ae2ca651296286cccd",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -1149,6 +1149,24 @@
     "mtime": 1790710174.1116543,
     "seen": 1790710565.2962742,
     "ast_hash": "6cc89c4e30bbf760010a549e6f25945c",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Casts/GroundingMetadataCast.php": {
+    "mtime": 1790776057.1630738,
+    "seen": 1790776614.0251572,
+    "ast_hash": "a48c7bfa69ebb4f791322b300885a82a",
+    "semantic_hash": ""
+  },
+  "app-laravel/database/migrations/2026_09_30_134258_add_grounding_metadata_to_knowledge_entries_table.php": {
+    "mtime": 1790776057.1630738,
+    "seen": 1790776614.0255227,
+    "ast_hash": "e1880ac294d8da65d208e7311aa55d1b",
+    "semantic_hash": ""
+  },
+  "app-laravel/app/Services/Knowledge/GroundingEvidenceValidator.php": {
+    "mtime": 1790777604.6496105,
+    "seen": 1790777950.595659,
+    "ast_hash": "c580221daa335a7a07f8541ea0a95944",
     "semantic_hash": ""
   }
 }

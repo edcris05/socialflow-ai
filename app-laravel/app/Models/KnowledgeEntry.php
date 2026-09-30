@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\GroundingMetadataCast;
+use App\Services\Knowledge\GroundingEvidenceValidator;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status',
     'category',
     'applicability',
+    'grounding_metadata',
     'brand_id',
     'created_by',
     'updated_by',
@@ -53,10 +56,21 @@ class KnowledgeEntry extends Model
         return $this->hasMany(KnowledgeAudit::class);
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $entry): void {
+            app(GroundingEvidenceValidator::class)->validate(
+                $entry->grounding_metadata,
+                (string) $entry->content,
+            );
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'verified_at' => 'datetime',
+            'grounding_metadata' => GroundingMetadataCast::class,
         ];
     }
 }

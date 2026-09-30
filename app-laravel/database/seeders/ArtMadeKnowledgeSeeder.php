@@ -125,7 +125,7 @@ class ArtMadeKnowledgeSeeder extends Seeder
                     'brand_id' => $brand->id,
                     'user_id' => $user->id,
                     'action' => 'created',
-                    'after' => $entry->only(['title', 'content', 'source', 'status']),
+                    'after' => $entry->only(['title', 'content', 'source', 'status', 'grounding_metadata']),
                 ]);
             }
         }
