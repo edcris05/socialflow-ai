@@ -7,6 +7,8 @@ use App\Contracts\GenerationProviderInterface;
 use App\Models\Draft;
 use App\Models\GenerationRun;
 use App\Models\User;
+use App\Services\Knowledge\Grounding\FactualGroundingEvaluator;
+use App\Services\Knowledge\Grounding\GroundingStatus;
 use App\Services\Prompting\PromptComposer;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -17,6 +19,7 @@ class GenerationService
         private GenerationProviderInterface $provider,
         private PromptComposer $composer,
         private GenerationEvaluatorInterface $evaluator,
+        private FactualGroundingEvaluator $groundingEvaluator,
     ) {}
 
     public function generate(Draft $draft, User $user, bool $regenerate = false): GenerationRun
@@ -59,6 +62,7 @@ class GenerationService
                 $lockedRun = GenerationRun::query()->lockForUpdate()->findOrFail($run->getKey());
                 $generatedContent = $result->content;
                 $evaluation = $this->evaluator->evaluate($generatedContent, $lockedRun->contextSnapshot);
+                [$groundingStatus, $groundingResults] = $this->evaluateGrounding($result, $lockedRun);
 
                 $lockedRun->draft()->update(['content' => $generatedContent]);
                 $lockedRun->update([
@@ -77,6 +81,8 @@ class GenerationService
                     'evaluation_violations' => $evaluation->violations,
                     'evaluation_warnings' => $evaluation->warnings,
                     'evaluated_at' => now(),
+                    'grounding_status' => $groundingStatus,
+                    'grounding_results' => $groundingResults,
                 ]);
             });
         } catch (Throwable $exception) {
@@ -95,6 +101,36 @@ class GenerationService
         }
 
         return $run->fresh();
+    }
+
+    /**
+     * @return array{0: string, 1: list<array<string, mixed>>}
+     */
+    private function evaluateGrounding(GenerationResult $result, GenerationRun $run): array
+    {
+        $status = GroundingSummaryStatus::Passed;
+        $results = [];
+
+        foreach ($result->factualClaims as $declaredClaim) {
+            $grounding = $this->groundingEvaluator->evaluate(
+                $declaredClaim->toFactualClaim(),
+                $run->contextSnapshot,
+            );
+
+            if ($grounding->status !== GroundingStatus::Supported) {
+                $status = GroundingSummaryStatus::RequiresReview;
+            }
+
+            $groundingData = $grounding->toArray();
+            unset($groundingData['subject'], $groundingData['predicate'], $groundingData['value']);
+
+            $results[] = [
+                'claim' => $declaredClaim->toArray(),
+                ...$groundingData,
+            ];
+        }
+
+        return [$status->value, $results];
     }
 
     private function estimatedCost(GenerationResult $result): ?float

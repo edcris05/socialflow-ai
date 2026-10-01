@@ -119,12 +119,18 @@ final class GenerationPrompt
         $items = array_map(function (array $entry): string {
             $title = $entry['title'] ?? 'Elemento sin título';
             $content = $entry['content'] ?? '';
+            $metadata = ($entry['status'] ?? null) === 'verified' && is_array($entry['grounding_metadata'] ?? null)
+                ? $entry['grounding_metadata']
+                : null;
+            $structuredClaims = $metadata === null
+                ? ''
+                : "\n  Identificadores factuales estructurados: ".json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             if ($content === '') {
-                return '- '.$title;
+                return '- '.$title.$structuredClaims;
             }
 
-            return '- '.$title.': '.$content;
+            return '- '.$title.': '.$content.$structuredClaims;
         }, $entries);
 
         return implode("\n", $items);

@@ -31,6 +31,41 @@
             </section>
         @endif
 
+        @if ($latestGenerationRun)
+            <section class="mt-6 rounded-xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950">
+                <h2 class="text-lg font-semibold">Grounding factual</h2>
+                @if ($latestGenerationRun->grounding_status === 'passed')
+                    <p class="mt-2 font-medium">Claims declarados: PASSED</p>
+                    <p class="mt-2 text-sky-800">Los claims factuales declarados por el generador están respaldados.</p>
+                @elseif ($latestGenerationRun->grounding_status === 'requires_review')
+                    <p class="mt-2 font-medium">Claims declarados: REQUIRES REVIEW</p>
+                @else
+                    <p class="mt-2 font-medium">Claims declarados: NO EVALUADO</p>
+                @endif
+
+                @if (($latestGenerationRun->grounding_results ?? []) === [] && $latestGenerationRun->grounding_status === 'passed')
+                    <p class="mt-3">No se declararon claims factuales.</p>
+                @else
+                    <ul class="mt-3 space-y-3">
+                        @foreach ($latestGenerationRun->grounding_results ?? [] as $result)
+                            <li>
+                                <span class="font-medium">“{{ $result['claim']['text'] }}”</span>
+                                <span class="ml-1 font-semibold">{{ $result['status'] }}</span>
+                                @if ($result['evidence_excerpt'])
+                                    <div class="mt-1 text-sky-800">Evidencia: {{ $result['evidence_excerpt'] }}</div>
+                                @else
+                                    <div class="mt-1 text-sky-800">No se encontró evidencia histórica.</div>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <p class="mt-3 text-sky-800">Esta versión sólo evalúa los claims factuales declarados por el generador. No verifica exhaustivamente todas las afirmaciones del contenido.</p>
+                <p class="mt-2 font-semibold text-sky-950">Requiere aprobación humana antes de publicar.</p>
+            </section>
+        @endif
+
         @if ($draft->contextSnapshot)
             <section class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
                 <h2 class="text-lg font-semibold">Contexto capturado</h2>

@@ -87,6 +87,8 @@ class GenerationTest extends TestCase
         $this->assertSame(200, $run->output_tokens);
         $this->assertSame('resp_1', $run->provider_request_id);
         $this->assertEqualsWithDelta(0.0024, (float) $run->estimated_cost_usd, 0.00000001);
+        $this->assertSame('passed', $run->grounding_status);
+        $this->assertSame([], $run->grounding_results);
         $this->assertStringContainsString('Histórico aprobado', $this->prompts[0]);
         $this->assertStringNotContainsString('NO USAR', $this->prompts[0]);
     }
@@ -156,14 +158,22 @@ class GenerationTest extends TestCase
         config()->set('services.openai.max_output_tokens', 750);
         config()->set('services.openai.store', false);
         Http::preventStrayRequests();
-        Http::fake(['https://api.openai.com/v1/responses' => Http::response(['id' => 'resp_x', 'model' => 'gpt-5-mini', 'status' => 'completed', 'output' => [['type' => 'reasoning', 'content' => [['type' => 'reasoning_text', 'text' => 'No usar']]], ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => 'Hola']]]], 'usage' => ['input_tokens' => 10, 'input_tokens_details' => ['cached_tokens' => 3], 'output_tokens' => 5]])]);
+        Http::fake(['https://api.openai.com/v1/responses' => Http::response(['id' => 'resp_x', 'model' => 'gpt-5-mini', 'status' => 'completed', 'output' => [['type' => 'reasoning', 'content' => [['type' => 'reasoning_text', 'text' => 'No usar']]], ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => json_encode(['content' => 'Hola', 'factual_claims' => []], JSON_THROW_ON_ERROR)]]]], 'usage' => ['input_tokens' => 10, 'input_tokens_details' => ['cached_tokens' => 3], 'output_tokens' => 5]])]);
         $r = app(OpenAIGenerationProvider::class)->generate(new GenerationPrompt('Solicitud', '', '', '', systemInstructions: ['Regla']));
         $this->assertSame('Hola', $r->content);
         $this->assertSame(3, $r->cachedInputTokens);
         $this->assertSame('resp_x', $r->providerRequestId);
         $this->assertSame(10, $r->inputTokens);
         $this->assertSame(5, $r->outputTokens);
-        Http::assertSent(fn ($request) => $request['model'] === 'gpt-5-mini' && $request['max_output_tokens'] === 750 && $request['reasoning'] === ['effort' => 'minimal'] && $request['store'] === false && ! isset($request['metadata']) && ! isset($request['tools']));
+        Http::assertSent(fn ($request) => $request['model'] === 'gpt-5-mini'
+            && $request['max_output_tokens'] === 750
+            && $request['reasoning'] === ['effort' => 'minimal']
+            && $request['store'] === false
+            && $request['text']['format']['type'] === 'json_schema'
+            && $request['text']['format']['strict'] === true
+            && $request['text']['format']['schema']['required'] === ['content', 'factual_claims']
+            && ! isset($request['metadata'])
+            && ! isset($request['tools']));
     }
 
     public function test_openai_payload_prioritizes_contract_over_user_and_context_input(): void
@@ -179,7 +189,7 @@ class GenerationTest extends TestCase
             'id' => 'resp_priority',
             'model' => 'gpt-5-mini',
             'status' => 'completed',
-            'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Contenido final']]]],
+            'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode(['content' => 'Contenido final', 'factual_claims' => []], JSON_THROW_ON_ERROR)]]]],
         ])]);
 
         $result = app(OpenAIGenerationProvider::class)->generate($prompt);
@@ -235,6 +245,8 @@ class GenerationTest extends TestCase
         $this->assertSame(1150, $run->input_tokens);
         $this->assertSame(448, $run->output_tokens);
         $this->assertSame('not_evaluated', $run->evaluation_status);
+        $this->assertSame('not_evaluated', $run->grounding_status);
+        $this->assertNull($run->grounding_results);
         $this->assertNull($run->generated_content);
         $this->assertNull($run->evaluated_at);
         $this->assertStringContainsString('incomplete_reason=max_output_tokens', $run->error);

@@ -160,3 +160,26 @@ Se espera `sessions` en la primera consulta y una respuesta HTTP que no sea `500
 - Factual Grounding Core v1 evaluates an already structured claim exclusively against verified entries serialized in the historical ContextSnapshot. It does not query the current KnowledgeEntry table, perform retrieval, extract claims from prose, or infer aliases; only exact `subject` + `predicate` + `value` equality is `SUPPORTED`.
 - `phrases`, `evidence_excerpt`, and historical `source` explain a structured match but never create one. Missing subjects, predicates, values, legacy metadata, and absent uses under `coverage=open` are `UNKNOWN`; an absent allowed use is `UNSUPPORTED` only when all applicable historical coverage is closed.
 - Distinct explicit values for the same subject and predicate produce `CONFLICT` instead of selecting evidence arbitrarily. The v1 schema has no predicate-cardinality metadata, so this conservative state may require refinement before supporting legitimately multi-valued predicates.
+
+## Grounded Generation v1
+
+Grounded Generation v1 asks the existing single OpenAI Responses request for strict structured output containing the publishable `content` and the `factual_claims` declared by the generator. Each declared claim is evaluated only against the historical `ContextSnapshot` attached to its `GenerationRun`; no current knowledge retrieval, second model call, embeddings, or external grounding service is used.
+
+`grounding_status=passed` means every declared factual claim was `SUPPORTED`, or that the generator declared no factual claims. It does not mean the complete caption was exhaustively fact-checked. Invalid structured output or a declared `text` fragment absent from `content` fails closed and leaves grounding as `not_evaluated`.
+
+The first real manual test used: “Creá un post breve de Instagram promocionando nuestros stickers resistentes al agua. Usá un tono cercano y un llamado a la acción.” The response produced valid structured output, declared `stickers.water_resistance=resistant`, and grounded it as `SUPPORTED` with the correct “Adhesivo resistente al agua” evidence. It did not introduce price, stock, or production-time claims. However, the generated content also mentioned notebooks, bottles, and objects carried with the customer without declaring those concrete uses in `factual_claims`. This confirms the v1 boundary: Grounded Generation validates claims declared by the generator, not exhaustive factual coverage of the caption. Human approval remains required before publishing.
+
+### Grounding Improvements / Post-MVP
+
+The following capabilities are explicitly not implemented yet:
+
+1. Independent Claim Extractor.
+2. Optional second extraction/audit call.
+3. Detection of factual claims omitted by the generator.
+4. Semantic claim normalization.
+5. Entailment/NLI.
+6. Optional LLM grounding judge.
+7. Embeddings when evidence shows they add value.
+8. Cardinality for multi-valued predicates.
+9. Exhaustive caption coverage.
+10. Autopublishing conditioned on strong grounding.

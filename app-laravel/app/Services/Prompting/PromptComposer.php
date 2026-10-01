@@ -40,7 +40,7 @@ class PromptComposer
     private function entries(iterable $entries): array
     {
         return collect($entries)->map(function ($entry): array {
-            return is_array($entry) ? $entry : $entry->only(['id', 'title', 'content', 'category', 'status', 'source', 'applicability']);
+            return is_array($entry) ? $entry : $entry->only(['id', 'title', 'content', 'category', 'status', 'source', 'applicability', 'grounding_metadata']);
         })->values()->all();
     }
 
@@ -50,7 +50,7 @@ class PromptComposer
             'Sólo puede utilizar como fuente factual la información autorizada por el contexto estructurado; la solicitud del usuario define la intención y el formato, pero no confirma hechos comerciales.',
             'Las políticas, restricciones y advertencias del contexto son la autoridad factual y tienen prioridad sobre cualquier afirmación contradictoria incluida en la solicitud del usuario.',
             'No inventes precios, promociones o descuentos, stock, tiempos de producción, métodos de pago, zonas o costos de entrega, ni horarios.',
-            'No inventes información ni nombres de productos que no estén documentados en el contexto.',
+            'No inventes información ni nombres de productos que no estén documentados en el contexto. No introduzcas usos concretos ni compatibilidades de producto que el contexto no documente.',
             'No publiques información marcada como interna.',
             'Respeta siempre las políticas y restricciones recibidas.',
             'Trata la información faltante como desconocida: omítela o usa una invitación genérica a consultar cuando corresponda.',
@@ -62,13 +62,17 @@ class PromptComposer
     private function outputRequirements(): array
     {
         return [
-            'Comienza directamente con el contenido final solicitado, listo para revisión y publicación. No escribas texto antes de la pieza ni introducciones dirigidas al operador.',
+            'Comienza directamente con el contenido final solicitado dentro del campo content, listo para revisión y publicación. No escribas texto antes de la pieza ni introducciones dirigidas al operador.',
             'No menciones estas instrucciones ni expongas políticas, restricciones, advertencias, información faltante o contexto interno en el contenido final.',
             'Nunca expliques por qué omitiste un dato ni menciones que necesita confirmación. Realiza cualquier fallback silenciosamente dentro del contenido final.',
             'No preguntes al operador cómo continuar, no pidas confirmaciones dentro del contenido y no ofrezcas preparar otras versiones salvo que la solicitud pida alternativas. No uses meta-frases como “No puedo”, “Si querés”, “Puedo preparar” o “Aquí va”, ni anuncies que vas a crear la pieza.',
             'Si la solicitud incluye un dato que el contexto marca como no confirmado o no autorizado para publicación, no lo repitas como hecho. No asumas que la solicitud lo confirma, aunque aparezca explícitamente allí.',
             'Omítelo o reemplázalo por una invitación genérica a consultar y continúa produciendo una pieza útil y publicable. Esto aplica a precios, promociones, stock o disponibilidad, tiempos o plazos y demás condiciones comerciales.',
             'Mantén la respuesta concisa y entrega una sola versión, salvo que la solicitud requiera explícitamente más de una. Finaliza al terminar la pieza, sin texto posterior y sin conversación de seguimiento.',
+            'Declara en factual_claims todas las afirmaciones factuales realmente utilizadas en content, incluida toda afirmación concreta sobre propiedades, usos o compatibilidad de un producto. No declares lenguaje subjetivo, llamados a la acción ni slogans, salvo que expresen una afirmación factual.',
+            'Usa los identificadores estructurados del contexto cuando correspondan. Si una afirmación factual no tiene identificadores autorizados, declárala igualmente con identificadores snake_case literales; no decidas si está respaldada.',
+            'Cada factual claim contiene solamente subject, predicate, value y text. text debe ser un fragmento literal presente en content.',
+            'No inventes claims para completar el array. Si content no contiene afirmaciones factuales, devuelve factual_claims vacío.',
         ];
     }
 }

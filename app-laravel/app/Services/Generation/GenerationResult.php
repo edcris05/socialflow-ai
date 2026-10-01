@@ -4,6 +4,9 @@ namespace App\Services\Generation;
 
 final readonly class GenerationResult
 {
+    /**
+     * @param  list<DeclaredFactualClaim>  $factualClaims
+     */
     public function __construct(
         public string $content,
         public string $provider,
@@ -13,5 +16,6 @@ final readonly class GenerationResult
         public ?int $outputTokens,
         public ?string $finishReason,
         public ?string $providerRequestId,
+        public array $factualClaims = [],
     ) {}
 }

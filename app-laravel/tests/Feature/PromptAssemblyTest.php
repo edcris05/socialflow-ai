@@ -216,6 +216,41 @@ class PromptAssemblyTest extends TestCase
         $this->assertSame($draft->contextSnapshot->sources, $prompt->metadata['sources']);
     }
 
+    public function test_prompt_requests_declared_claims_and_exposes_historical_structured_identifiers(): void
+    {
+        [$user, $brand] = $this->brandContext();
+        $draft = $this->draftWithSnapshot($user, $brand, 'Promocionar stickers resistentes');
+        $entries = $draft->contextSnapshot->relevant_knowledge;
+        $entries[0]['status'] = 'verified';
+        $entries[0]['grounding_metadata'] = [
+            'subject' => 'stickers',
+            'claims' => [[
+                'predicate' => 'water_resistance',
+                'value' => 'resistant',
+                'phrases' => ['resistentes al agua'],
+                'evidence_excerpt' => 'Producto disponible',
+            ]],
+            'allowed_uses' => [
+                'values' => [],
+                'coverage' => 'open',
+            ],
+        ];
+        $draft->contextSnapshot->update(['relevant_knowledge' => $entries]);
+
+        $prompt = app(PromptComposer::class)->compose($draft->contextSnapshot->fresh());
+        $rendered = $prompt->render();
+
+        $this->assertStringContainsString('factual_claims', $rendered);
+        $this->assertStringContainsString('propiedades, usos o compatibilidad de un producto', $rendered);
+        $this->assertStringContainsString('No introduzcas usos concretos ni compatibilidades de producto', $rendered);
+        $this->assertStringContainsString('subject, predicate, value y text', $rendered);
+        $this->assertStringContainsString('No inventes claims', $rendered);
+        $this->assertStringContainsString('Identificadores factuales estructurados', $rendered);
+        $this->assertStringContainsString('"subject":"stickers"', $rendered);
+        $this->assertStringContainsString('"predicate":"water_resistance"', $rendered);
+        $this->assertStringContainsString('"value":"resistant"', $rendered);
+    }
+
     public function test_user_cannot_access_prompt_preview_from_another_brand(): void
     {
         [$owner, $brand] = $this->brandContext();
