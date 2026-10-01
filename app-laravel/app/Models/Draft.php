@@ -10,10 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['title', 'content', 'status', 'brand_id', 'user_id'])]
+#[Fillable(['title', 'content', 'status', 'brand_id', 'user_id', 'manually_edited_at'])]
 class Draft extends Model
 {
     use HasFactory, HasUlids;
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_REJECTED = 'rejected';
 
     public function brand(): BelongsTo
     {
@@ -25,6 +31,16 @@ class Draft extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
     public function generationRuns(): HasMany
     {
         return $this->hasMany(GenerationRun::class);
@@ -33,5 +49,23 @@ class Draft extends Model
     public function contextSnapshot(): HasOne
     {
         return $this->hasOne(ContextSnapshot::class);
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::STATUS_APPROVED => 'APROBADO',
+            self::STATUS_REJECTED => 'RECHAZADO',
+            default => 'BORRADOR',
+        };
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'approved_at' => 'datetime',
+            'rejected_at' => 'datetime',
+            'manually_edited_at' => 'datetime',
+        ];
     }
 }

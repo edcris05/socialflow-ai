@@ -183,3 +183,25 @@ The following capabilities are explicitly not implemented yet:
 8. Cardinality for multi-valued predicates.
 9. Exhaustive caption coverage.
 10. Autopublishing conditioned on strong grounding.
+
+## Approval Workflow v1
+
+Approval Workflow v1 keeps the human decision separate from automatic evaluation. A Draft can move from `draft` to `approved` or `rejected`; a rejected Draft can explicitly return to `draft`, while an approved Draft is terminal in v1 and cannot be silently edited, regenerated, rejected, or reopened. Approval means “approved for a future publication”; it does not call Meta, publish, or schedule anything.
+
+Approval and rejection store the responsible user and timestamp. Reopening a rejected Draft preserves its rejection metadata, and a later approval does not erase it. This is intentionally a compact audit record rather than a complete transition ledger. Repeated rejection cycles retain the most recent rejection details; complete transition history is Post-MVP work.
+
+When a person changes `Draft.content` after a successful generation, `manually_edited_at` makes the divergence explicit. `GenerationRun.generated_content`, commercial evaluation, factual grounding, and the historical `ContextSnapshot` remain unchanged. The UI therefore warns that automatic results describe the generated version, not necessarily the current human-edited Draft. v1 does not automatically extract or re-ground human edits.
+
+### Approval Improvements / Post-MVP
+
+The following capabilities are explicitly deferred:
+
+1. Approver-specific roles.
+2. Multiple approval levels.
+3. Collaborative review comments.
+4. A complete append-only transition history.
+5. Configurable approval policies.
+6. Automatic re-grounding after human editing.
+7. Risk-based auto-approval.
+8. Approval notifications.
+9. Scheduled approval expiration.

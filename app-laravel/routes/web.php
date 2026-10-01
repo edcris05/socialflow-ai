@@ -51,6 +51,9 @@ Route::middleware('auth')->group(function () {
         Route::post('borradores', [DraftController::class, 'store'])->name('borradores.store');
         Route::get('borradores/{draft}/editar', [DraftController::class, 'edit'])->name('borradores.edit');
         Route::put('borradores/{draft}', [DraftController::class, 'update'])->name('borradores.update');
+        Route::patch('borradores/{draft}/aprobar', [DraftController::class, 'approve'])->name('borradores.approve');
+        Route::patch('borradores/{draft}/rechazar', [DraftController::class, 'reject'])->name('borradores.reject');
+        Route::patch('borradores/{draft}/volver-a-borrador', [DraftController::class, 'reopen'])->name('borradores.reopen');
         Route::post('borradores/{draft}/generar', [GenerationController::class, 'store'])->name('borradores.generar');
         Route::get('borradores/{draft}/prompt-preview', [PromptController::class, 'preview'])->name('borradores.prompt.preview');
     });

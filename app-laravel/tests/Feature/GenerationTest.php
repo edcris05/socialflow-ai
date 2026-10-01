@@ -112,11 +112,19 @@ class GenerationTest extends TestCase
         app(GenerationService::class)->generate($d, $u);
         app(GenerationService::class)->generate($d, $u);
         $this->assertSame(1, $this->calls);
+        $first = GenerationRun::query()->sole();
+        $d->update([
+            'content' => 'Edición manual',
+            'manually_edited_at' => now(),
+        ]);
         $this->handler = fn () => new GenerationResult('Segundo', 'fake', 'm', 1, 0, 1, 'completed', 'resp_2');
         app(GenerationService::class)->generate($d, $u, true);
         $this->assertSame(2, $this->calls);
         $this->assertSame(2, GenerationRun::count());
-        $this->assertSame('Segundo', $d->fresh()->content);
+        $this->assertSame('Texto generado', $first->fresh()->generated_content);
+        $d->refresh();
+        $this->assertSame('Segundo', $d->content);
+        $this->assertNull($d->manually_edited_at);
     }
 
     public function test_unknown_price_is_null(): void

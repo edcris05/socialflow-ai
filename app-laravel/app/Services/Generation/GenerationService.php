@@ -64,7 +64,10 @@ class GenerationService
                 $evaluation = $this->evaluator->evaluate($generatedContent, $lockedRun->contextSnapshot);
                 [$groundingStatus, $groundingResults] = $this->evaluateGrounding($result, $lockedRun);
 
-                $lockedRun->draft()->update(['content' => $generatedContent]);
+                $lockedRun->draft()->update([
+                    'content' => $generatedContent,
+                    'manually_edited_at' => null,
+                ]);
                 $lockedRun->update([
                     'status' => 'succeeded',
                     'generated_content' => $generatedContent,
