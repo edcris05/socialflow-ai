@@ -60,9 +60,9 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
 
         try {
             [$content, $factualClaims] = $this->parseStructuredOutput($outputText);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
             throw new InvalidProviderResponseException(
-                'El proveedor devolvió output estructurado inválido.',
+            'El proveedor devolvió output estructurado inválido: '.$exception->getMessage(),
                 $providerRequestId,
                 $inputTokens,
                 $cachedInputTokens,
@@ -166,9 +166,9 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
                     'items' => [
                         'type' => 'object',
                         'properties' => [
-                            'subject' => ['type' => 'string'],
-                            'predicate' => ['type' => 'string'],
-                            'value' => ['type' => 'string'],
+                            'subject' => ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]*$'],
+                            'predicate' => ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]*$'],
+                            'value' => ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]*$'],
                             'text' => ['type' => 'string'],
                         ],
                         'required' => ['subject', 'predicate', 'value', 'text'],

@@ -71,6 +71,7 @@ class PromptComposer
             'Mantén la respuesta concisa y entrega una sola versión, salvo que la solicitud requiera explícitamente más de una. Finaliza al terminar la pieza, sin texto posterior y sin conversación de seguimiento.',
             'Declara en factual_claims todas las afirmaciones factuales realmente utilizadas en content, incluida toda afirmación concreta sobre propiedades, usos o compatibilidad de un producto. No declares lenguaje subjetivo, llamados a la acción ni slogans, salvo que expresen una afirmación factual.',
             'Usa los identificadores estructurados del contexto cuando correspondan. Si una afirmación factual no tiene identificadores autorizados, declárala igualmente con identificadores snake_case literales; no decidas si está respaldada.',
+            'subject, predicate y value deben ser identificadores snake_case estables: comienzan con una letra minúscula y sólo contienen letras minúsculas, números y guiones bajos. Ejemplos válidos: stickers, water_resistance, resistant, allowed_use, bottles, brand_activity, resumed. Ejemplos inválidos: resistant to water, Resistant, resistente al agua, vuelve a la actividad, personalized designs.',
             'Cada factual claim contiene solamente subject, predicate, value y text. text debe ser un fragmento literal presente en content.',
             'No inventes claims para completar el array. Si content no contiene afirmaciones factuales, devuelve factual_claims vacío.',
         ];

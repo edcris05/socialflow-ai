@@ -244,6 +244,9 @@ class PromptAssemblyTest extends TestCase
         $this->assertStringContainsString('propiedades, usos o compatibilidad de un producto', $rendered);
         $this->assertStringContainsString('No introduzcas usos concretos ni compatibilidades de producto', $rendered);
         $this->assertStringContainsString('subject, predicate, value y text', $rendered);
+        $this->assertStringContainsString('identificadores snake_case estables', $rendered);
+        $this->assertStringContainsString('stickers, water_resistance, resistant', $rendered);
+        $this->assertStringContainsString('resistant to water, Resistant, resistente al agua', $rendered);
         $this->assertStringContainsString('No inventes claims', $rendered);
         $this->assertStringContainsString('Identificadores factuales estructurados', $rendered);
         $this->assertStringContainsString('"subject":"stickers"', $rendered);

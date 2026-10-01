@@ -18,6 +18,7 @@ return [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-5-mini'),
         'max_output_tokens' => (int) env('OPENAI_MAX_OUTPUT_TOKENS', 750),
+        'strategy_max_output_tokens' => (int) env('OPENAI_STRATEGY_MAX_OUTPUT_TOKENS', 1500),
         'store' => filter_var(env('OPENAI_STORE', false), FILTER_VALIDATE_BOOL),
         'timeout' => (int) env('OPENAI_TIMEOUT', 30),
         'pricing' => [

@@ -7,6 +7,7 @@
         </div>
         <a href="{{ route('marcas.edit', $brand) }}" class="inline-flex w-fit rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">Editar marca</a>
         <a href="{{ route('marcas.conocimiento.index', $brand) }}" class="inline-flex w-fit rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Base de conocimiento</a>
+        <a href="{{ route('marcas.estrategia.index', $brand) }}" class="inline-flex w-fit rounded-lg border border-violet-300 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800">Estrategia</a>
         <a href="{{ route('marcas.contexto.create', $brand) }}" class="inline-flex w-fit rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-800">Preparar contenido</a>
     </div>
 

@@ -39,6 +39,11 @@ class Brand extends Model
         return $this->hasMany(Draft::class);
     }
 
+    public function strategyRuns(): HasMany
+    {
+        return $this->hasMany(StrategyRun::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

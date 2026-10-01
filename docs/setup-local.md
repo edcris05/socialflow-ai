@@ -205,3 +205,28 @@ The following capabilities are explicitly deferred:
 7. Risk-based auto-approval.
 8. Approval notifications.
 9. Scheduled approval expiration.
+
+## Strategy Agent v1
+
+Strategy Agent v1 answers which content the brand could create next; it does not write, approve, publish, or schedule the final post. A single OpenAI Responses request returns exactly three structured suggestions with topic, objective, format, angle, reason, and generation_query.
+
+Each StrategyRun persists the exact strategic context, suggestions, provider/model, status, token usage, estimated cost, provider request identifier, finish reason, and safe error. The context contains verified knowledge, policies, restrictions, non-usable pending/future titles, and a bounded summary of the current user's recent Draft queries and Strategy topics. Pending knowledge and future ideas are never included as authorized facts.
+
+Selecting a suggestion creates a Draft and runs its stored generation_query through the existing ContextBuilder to create a historical ContextSnapshot. It does not invoke OpenAI or GenerationService; the user continues through the existing Generation, Grounding, and Approval workflow explicitly.
+
+The v1 provider reuses gpt-5-mini, reasoning.effort=minimal, a dedicated strategy_max_output_tokens=1500 budget, store=false, timeout, and pricing from services.openai. Generation keeps its existing max_output_tokens configuration. There is no second model call, embeddings, ranking score, analytics, Meta integration, or autonomous orchestration.
+
+### Strategy Improvements / Post-MVP
+
+The following capabilities are explicitly deferred:
+
+1. Analytics-driven strategy and engagement scoring.
+2. Best-time-to-post recommendations.
+3. Adaptive publishing frequency.
+4. Multi-post campaign planning.
+5. Configurable content pillars.
+6. Seasonality and calendar optimization.
+7. Autonomous strategy loops.
+8. Strategy Agent and Analytics Agent feedback.
+9. Automatic re-planning.
+10. Facebook-specific formats and copy adaptation.

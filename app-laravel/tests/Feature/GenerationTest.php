@@ -180,6 +180,10 @@ class GenerationTest extends TestCase
             && $request['text']['format']['type'] === 'json_schema'
             && $request['text']['format']['strict'] === true
             && $request['text']['format']['schema']['required'] === ['content', 'factual_claims']
+            && $request['text']['format']['schema']['properties']['factual_claims']['items']['properties']['subject']['pattern'] === '^[a-z][a-z0-9_]*$'
+            && $request['text']['format']['schema']['properties']['factual_claims']['items']['properties']['predicate']['pattern'] === '^[a-z][a-z0-9_]*$'
+            && $request['text']['format']['schema']['properties']['factual_claims']['items']['properties']['value']['pattern'] === '^[a-z][a-z0-9_]*$'
+            && ! isset($request['text']['format']['schema']['properties']['factual_claims']['items']['properties']['text']['pattern'])
             && ! isset($request['metadata'])
             && ! isset($request['tools']));
     }

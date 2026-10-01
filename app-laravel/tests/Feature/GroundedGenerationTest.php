@@ -154,8 +154,29 @@ class GroundedGenerationTest extends TestCase
         $run = app(GenerationService::class)->generate($draft, $user);
 
         $this->assertFailedWithoutGrounding($run, $draft);
-        $this->assertStringContainsString('output estructurado inválido', $run->error);
+        $this->assertStringContainsString('Declared factual claim text is absent from content.', $run->error);
         Http::assertSentCount(1);
+    }
+
+    public function test_claim_identifiers_must_remain_snake_case_without_normalization(): void
+    {
+        [$user, , $draft] = $this->draftWithSnapshot([]);
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::sequence()
+                ->push($this->response('Stickers resistentes al agua.', [$this->claim('water_resistance', 'resistente al agua', 'resistentes al agua')]))
+                ->push($this->response('Stickers resistentes al agua.', [$this->claim('water_resistance', 'Resistant', 'resistentes al agua')]))
+                ->push($this->response('Stickers resistentes al agua.', [$this->claim('water_resistance', 'water-resistant', 'resistentes al agua')])),
+        ]);
+
+        foreach (['resistente al agua', 'Resistant', 'water-resistant'] as $invalidValue) {
+            $run = app(GenerationService::class)->generate($draft, $user, regenerate: true);
+
+            $this->assertFailedWithoutGrounding($run, $draft);
+            $this->assertStringContainsString('Factual claim value must be a stable snake_case identifier.', $run->error);
+            $this->assertStringNotContainsString($invalidValue, $run->error);
+        }
+
+        Http::assertSentCount(3);
     }
 
     public function test_invalid_json_output_fails_closed(): void
