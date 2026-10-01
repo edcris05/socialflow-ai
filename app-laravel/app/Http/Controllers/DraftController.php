@@ -39,7 +39,7 @@ class DraftController extends Controller
     public function edit(Brand $brand, Draft $draft): View
     {
         $brand = $this->ownedBrand($brand);
-        $draft = $this->ownedDraft($brand, $draft)->load(['approvedBy', 'contextSnapshot', 'rejectedBy']);
+        $draft = $this->ownedDraft($brand, $draft)->load(['approvedBy', 'contextSnapshot', 'rejectedBy', 'scheduledPublications' => fn ($query) => $query->where('status', 'scheduled')->latest('id')]);
 
         $generationToken = null;
         if ($draft->status === Draft::STATUS_DRAFT && $draft->contextSnapshot !== null) {
@@ -55,8 +55,9 @@ class DraftController extends Controller
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->first();
+        $scheduledPublication = $draft->scheduledPublications->first();
 
-        return view('drafts.edit', compact('brand', 'draft', 'generationToken', 'latestGenerationRun'));
+        return view('drafts.edit', compact('brand', 'draft', 'generationToken', 'latestGenerationRun', 'scheduledPublication'));
     }
 
     public function update(DraftRequest $request, Brand $brand, Draft $draft): RedirectResponse

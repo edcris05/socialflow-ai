@@ -8,6 +8,7 @@ use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\KnowledgeEntryController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\StrategyController;
+use App\Http\Controllers\ScheduledPublicationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -62,5 +63,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('borradores/{draft}/volver-a-borrador', [DraftController::class, 'reopen'])->name('borradores.reopen');
         Route::post('borradores/{draft}/generar', [GenerationController::class, 'store'])->name('borradores.generar');
         Route::get('borradores/{draft}/prompt-preview', [PromptController::class, 'preview'])->name('borradores.prompt.preview');
+        Route::get('programacion', [ScheduledPublicationController::class, 'index'])->name('programacion.index');
+        Route::post('borradores/{draft}/programar', [ScheduledPublicationController::class, 'store'])->name('borradores.programar');
+        Route::patch('programacion/{scheduledPublication}', [ScheduledPublicationController::class, 'update'])->name('programacion.update');
+        Route::patch('programacion/{scheduledPublication}/cancelar', [ScheduledPublicationController::class, 'cancel'])->name('programacion.cancel');
     });
 });

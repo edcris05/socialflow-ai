@@ -12,6 +12,9 @@
                 <p class="mt-3 font-semibold text-emerald-800">Aprobado para publicación.</p>
                 <p class="mt-1 text-sm text-slate-700">Aprobado por {{ $draft->approvedBy?->name ?? 'Usuario eliminado' }} el {{ $draft->approved_at?->format('d/m/Y H:i') }}.</p>
                 <p class="mt-2 text-sm text-slate-600">La aprobación no publicó ni programó contenido en ninguna plataforma.</p>
+                @if ($scheduledPublication)
+                    <p class="mt-3 text-sm font-semibold text-emerald-800">Programado para {{ $scheduledPublication->scheduled_for->format('d/m/Y H:i') }} · {{ $scheduledPublication->statusLabel() }}</p>
+                @endif
             @elseif ($draft->status === 'rejected')
                 <p class="mt-3 font-semibold text-red-800">Este borrador fue rechazado.</p>
                 <p class="mt-1 text-sm text-slate-700">Rechazado por {{ $draft->rejectedBy?->name ?? 'Usuario eliminado' }} el {{ $draft->rejected_at?->format('d/m/Y H:i') }}.</p>
@@ -25,6 +28,29 @@
 
         @if (session('status'))
             <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('status') }}</div>
+        @endif
+
+        @if ($draft->status === 'approved')
+            <section class="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                <h2 class="text-lg font-semibold text-emerald-950">Programación</h2>
+                @if ($scheduledPublication)
+                    <p class="mt-2 text-sm text-emerald-900">{{ $scheduledPublication->statusLabel() }} para {{ $scheduledPublication->scheduled_for->format('d/m/Y H:i') }}.</p>
+                    <a href="{{ route('marcas.programacion.index', $brand) }}" class="mt-4 inline-block rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">Ver programación</a>
+                @else
+                    <form action="{{ route('marcas.borradores.programar', [$brand, $draft]) }}" method="POST" class="mt-4 flex flex-wrap items-end gap-3">
+                        @csrf
+                        <div>
+                            <label for="scheduled_for" class="block text-sm font-semibold text-emerald-950">Fecha y hora</label>
+                            <p class="mt-1 text-sm text-emerald-900">La fecha y hora deben ser posteriores al momento actual.</p>
+                            @error('scheduled_for')
+                                <p class="mt-1 text-sm font-semibold text-red-700">{{ $message }}</p>
+                            @enderror
+                            <input id="scheduled_for" name="scheduled_for" type="datetime-local" min="{{ now()->format('Y-m-d\\TH:i') }}" required class="mt-2 rounded-lg border-emerald-300 bg-white">
+                        </div>
+                        <button class="rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">Programar</button>
+                    </form>
+                @endif
+            </section>
         @endif
         @if (session('error'))
             <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ session('error') }}</div>

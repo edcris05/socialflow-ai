@@ -230,3 +230,13 @@ The following capabilities are explicitly deferred:
 8. Strategy Agent and Analytics Agent feedback.
 9. Automatic re-planning.
 10. Facebook-specific formats and copy adaptation.
+
+## Calendar / Queue v1
+
+Calendar v1 schedules only approved Drafts for future internal publication. It stores a `ScheduledPublication` with its brand, Draft, scheduling actor, scheduled time, status, and cancellation audit. Draft approval remains terminal and independent from scheduling; scheduling does not modify GenerationRun, ContextSnapshot, evaluation, grounding, or approval timestamps.
+
+The persisted states are `scheduled` and `cancelled`. `READY` is derived when a scheduled item has `scheduled_for <= now()`. READY means only that the item is ready for a future publisher; Calendar v1 never calls Meta, Instagram, Facebook, OpenAI, or any external provider.
+
+A Draft has one active schedule. Reprogramming updates that active record, while cancelling preserves it with `cancelled_at` and `cancelled_by`; a cancelled Draft can receive a new active schedule. The application uses UTC for this MVP and does not implement per-brand timezones.
+
+Future improvements explicitly deferred: Meta publishing, publication retries and attempts, scheduled workers, recurrence, per-brand timezones, campaign calendars, drag-and-drop calendars, Strategy auto-scheduling, best-time analytics, failed publication queues, notifications, and complete publication history.

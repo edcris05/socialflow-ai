@@ -51,6 +51,11 @@ class Draft extends Model
         return $this->hasOne(ContextSnapshot::class);
     }
 
+    public function scheduledPublications(): HasMany
+    {
+        return $this->hasMany(ScheduledPublication::class);
+    }
+
     public function statusLabel(): string
     {
         return match ($this->status) {

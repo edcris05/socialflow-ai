@@ -44,6 +44,11 @@ class Brand extends Model
         return $this->hasMany(StrategyRun::class);
     }
 
+    public function scheduledPublications(): HasMany
+    {
+        return $this->hasMany(ScheduledPublication::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
