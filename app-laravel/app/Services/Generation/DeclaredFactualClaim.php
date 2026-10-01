@@ -12,6 +12,7 @@ final readonly class DeclaredFactualClaim
         public string $predicate,
         public string $value,
         public string $text,
+        public bool $textMatchesContent,
     ) {
         new FactualClaim($subject, $predicate, $value);
 
@@ -25,7 +26,7 @@ final readonly class DeclaredFactualClaim
         return new FactualClaim($this->subject, $this->predicate, $this->value);
     }
 
-    /** @return array{subject: string, predicate: string, value: string, text: string} */
+    /** @return array{subject: string, predicate: string, value: string, text: string, text_matches_content: bool} */
     public function toArray(): array
     {
         return [
@@ -33,6 +34,7 @@ final readonly class DeclaredFactualClaim
             'predicate' => $this->predicate,
             'value' => $this->value,
             'text' => $this->text,
+            'text_matches_content' => $this->textMatchesContent,
         ];
     }
 }

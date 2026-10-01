@@ -71,6 +71,9 @@
                             <li>
                                 <span class="font-medium">“{{ $result['claim']['text'] }}”</span>
                                 <span class="ml-1 font-semibold">{{ $result['status'] }}</span>
+                                @if (($result['claim']['text_matches_content'] ?? true) === false)
+                                    <div class="mt-1 text-amber-800">El claim fue declarado por el generador pero su fragmento textual no pudo vincularse exactamente al contenido.</div>
+                                @endif
                                 @if ($result['evidence_excerpt'])
                                     <div class="mt-1 text-sky-800">Evidencia: {{ $result['evidence_excerpt'] }}</div>
                                 @else

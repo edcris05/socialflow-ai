@@ -62,7 +62,7 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
             [$content, $factualClaims] = $this->parseStructuredOutput($outputText);
         } catch (Throwable $exception) {
             throw new InvalidProviderResponseException(
-            'El proveedor devolvió output estructurado inválido: '.$exception->getMessage(),
+                'El proveedor devolvió output estructurado inválido: '.$exception->getMessage(),
                 $providerRequestId,
                 $inputTokens,
                 $cachedInputTokens,
@@ -121,14 +121,8 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
                 $claim['predicate'],
                 $claim['value'],
                 $claim['text'],
+                str_contains($payload['content'], $claim['text']),
             );
-
-            if (! str_contains(
-                $this->normalizeText($payload['content']),
-                $this->normalizeText($declaredClaim->text),
-            )) {
-                throw new RuntimeException('Declared factual claim text is absent from content.');
-            }
 
             $claims[] = $declaredClaim;
         }
@@ -147,11 +141,6 @@ class OpenAIGenerationProvider implements GenerationProviderInterface
         sort($keys);
 
         return $actual === $keys;
-    }
-
-    private function normalizeText(string $value): string
-    {
-        return mb_strtolower(preg_replace('/\s+/u', ' ', trim($value)) ?? '');
     }
 
     /** @return array<string, mixed> */

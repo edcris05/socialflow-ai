@@ -144,7 +144,7 @@ class GroundedGenerationTest extends TestCase
         $this->assertSame([], $run->grounding_results);
     }
 
-    public function test_claim_text_absent_from_content_fails_closed(): void
+    public function test_claim_text_absent_from_content_does_not_break_generation(): void
     {
         [$user, , $draft] = $this->draftWithSnapshot([], 'Original');
         $this->fakeStructuredResponse('Stickers resistentes al agua.', [
@@ -153,9 +153,61 @@ class GroundedGenerationTest extends TestCase
 
         $run = app(GenerationService::class)->generate($draft, $user);
 
-        $this->assertFailedWithoutGrounding($run, $draft);
-        $this->assertStringContainsString('Declared factual claim text is absent from content.', $run->error);
+        $this->assertSame('succeeded', $run->status);
+        $this->assertSame('requires_review', $run->grounding_status);
+        $this->assertFalse($run->grounding_results[0]['claim']['text_matches_content']);
+        $this->assertSame('impermeables', $run->grounding_results[0]['claim']['text']);
+        $this->assertSame('Stickers resistentes al agua.', $draft->fresh()->content);
+        $this->actingAs($user)
+            ->get(route('marcas.borradores.edit', [$draft->brand, $draft]))
+            ->assertOk()
+            ->assertSee('El claim fue declarado por el generador pero su fragmento textual no pudo vincularse exactamente al contenido.');
+        $this->assertSame('Stickers resistentes al agua.', $run->generated_content);
         Http::assertSentCount(1);
+    }
+
+    public function test_exact_claim_text_is_persisted_as_anchored(): void
+    {
+        [$user, , $draft] = $this->draftWithSnapshot([]);
+        $this->fakeStructuredResponse('Stickers resistentes al agua.', [
+            $this->claim('water_resistance', 'resistant', 'Stickers resistentes al agua.'),
+        ]);
+
+        $run = app(GenerationService::class)->generate($draft, $user);
+
+        $this->assertSame('succeeded', $run->status);
+        $this->assertTrue($run->grounding_results[0]['claim']['text_matches_content']);
+    }
+
+    public function test_unanchored_claim_still_uses_structured_fields_for_grounding(): void
+    {
+        [$user, , $draft] = $this->draftWithSnapshot([
+            $this->entry('entry-a', $this->metadata()),
+        ], 'Original');
+        $this->fakeStructuredResponse('Contenido sobre stickers.', [
+            $this->claim('water_resistance', 'resistant', 'texto que no aparece'),
+        ]);
+
+        $run = app(GenerationService::class)->generate($draft, $user);
+
+        $this->assertSame('succeeded', $run->status);
+        $this->assertSame('passed', $run->grounding_status);
+        $this->assertSame('SUPPORTED', $run->grounding_results[0]['status']);
+        $this->assertFalse($run->grounding_results[0]['claim']['text_matches_content']);
+        $this->assertSame('Contenido sobre stickers.', $draft->fresh()->content);
+    }
+
+    public function test_claim_text_matching_is_exact_without_fuzzy_matching(): void
+    {
+        [$user, , $draft] = $this->draftWithSnapshot([]);
+        $this->fakeStructuredResponse('Stickers resistentes al agua.', [
+            $this->claim('water_resistance', 'resistant', 'resistentes agua'),
+        ]);
+
+        $run = app(GenerationService::class)->generate($draft, $user);
+
+        $this->assertSame('succeeded', $run->status);
+        $this->assertFalse($run->grounding_results[0]['claim']['text_matches_content']);
     }
 
     public function test_claim_identifiers_must_remain_snake_case_without_normalization(): void
