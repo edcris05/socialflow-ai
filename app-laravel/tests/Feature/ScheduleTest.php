@@ -44,6 +44,7 @@ class ScheduleTest extends TestCase
 
     public function test_non_approved_drafts_cannot_be_scheduled(): void
     {
+        $this->travelTo('2026-10-01 12:00:00');
         [$user, $brand, $draft] = $this->draft();
         $this->actingAs($user)
             ->post(route('marcas.borradores.programar', [$brand, $draft]), ['scheduled_for' => '2026-10-02T14:30'])
@@ -149,6 +150,7 @@ class ScheduleTest extends TestCase
 
     public function test_cancelled_publication_can_be_replaced_by_one_active_schedule(): void
     {
+        $this->travelTo('2026-10-01 12:00:00');
         [$user, $brand, $draft] = $this->approvedDraft();
         $publication = $this->schedule($user, $brand, $draft, '2026-10-02T13:00');
         $this->actingAs($user)->patch(route('marcas.programacion.cancel', [$brand, $publication]));
@@ -161,6 +163,7 @@ class ScheduleTest extends TestCase
 
     public function test_cross_tenant_user_cannot_schedule_cancel_or_reschedule(): void
     {
+        $this->travelTo('2026-10-01 12:00:00');
         [$owner, $otherBrand, $otherDraft] = $this->approvedDraft();
         $publication = $this->schedule($owner, $otherBrand, $otherDraft, '2026-10-02T13:00');
         [$user, $brand] = $this->draft();
