@@ -6,6 +6,7 @@ use App\Http\Controllers\ContextController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\KnowledgeEntryController;
+use App\Http\Controllers\MetaConnectionController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\StrategyController;
 use App\Http\Controllers\ScheduledPublicationController;
@@ -67,5 +68,8 @@ Route::middleware('auth')->group(function () {
         Route::post('borradores/{draft}/programar', [ScheduledPublicationController::class, 'store'])->name('borradores.programar');
         Route::patch('programacion/{scheduledPublication}', [ScheduledPublicationController::class, 'update'])->name('programacion.update');
         Route::patch('programacion/{scheduledPublication}/cancelar', [ScheduledPublicationController::class, 'cancel'])->name('programacion.cancel');
+        Route::get('meta', [MetaConnectionController::class, 'show'])->name('meta.show');
+        Route::post('meta', [MetaConnectionController::class, 'store'])->name('meta.store');
+        Route::delete('meta/token', [MetaConnectionController::class, 'deleteToken'])->name('meta.token.destroy');
     });
 });

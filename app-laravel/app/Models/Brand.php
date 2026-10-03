@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'name',
@@ -47,6 +48,11 @@ class Brand extends Model
     public function scheduledPublications(): HasMany
     {
         return $this->hasMany(ScheduledPublication::class);
+    }
+
+    public function metaConnection(): HasOne
+    {
+        return $this->hasOne(MetaConnection::class);
     }
 
     /**

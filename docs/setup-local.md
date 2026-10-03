@@ -240,3 +240,11 @@ The persisted states are `scheduled` and `cancelled`. `READY` is derived when a 
 A Draft has one active schedule. Reprogramming updates that active record, while cancelling preserves it with `cancelled_at` and `cancelled_by`; a cancelled Draft can receive a new active schedule. The application uses UTC for this MVP and does not implement per-brand timezones.
 
 Future improvements explicitly deferred: Meta publishing, publication retries and attempts, scheduled workers, recurrence, per-brand timezones, campaign calendars, drag-and-drop calendars, Strategy auto-scheduling, best-time analytics, failed publication queues, notifications, and complete publication history.
+
+## Meta Connection v1
+
+Meta Connection v1 stores one manual connection per Brand as secure preparation only. It records optional Facebook Page and Instagram Professional Account identifiers separately, encrypts the access token with Laravel's `encrypted` cast, and shows only whether a token is configured. Saving manual configuration always results in `configured_unverified`; this milestone performs no external verification and never publishes.
+
+The current official Meta documentation distinguishes Facebook Page access tokens from Instagram access tokens depending on the login path. It also describes Page-to-Instagram Professional Account relationships and different permission sets. SocialFlow therefore stores IDs and an optional scopes snapshot without hard-coding permissions or claiming that a connection is verified. Exact scopes, token lifecycle, OAuth, Page selection, reconnect, revocation, and app review remain for a future integration step.
+
+The next milestone is the Meta Publishing Boundary: `ScheduledPublication READY` -> `PublicationService` -> `MetaPublisherInterface` -> `PublicationAttempt` with idempotency and fake HTTP tests. No part of that publishing boundary is implemented here.
