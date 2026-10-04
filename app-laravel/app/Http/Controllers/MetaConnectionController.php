@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MetaConnectionRequest;
 use App\Models\Brand;
 use App\Models\MetaConnection;
+use App\Services\Meta\MetaConnectionVerifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -65,6 +66,34 @@ class MetaConnectionController extends Controller
         }
 
         return to_route('marcas.meta.show', $brand)->with('status', 'El token fue eliminado. La conexión y sus identificadores se conservaron.');
+    }
+
+    public function verify(Brand $brand, MetaConnectionVerifier $verifier): RedirectResponse
+    {
+        $brand = $this->ownedBrand($brand);
+        $connection = $brand->metaConnection;
+
+        if (! $connection) {
+            return to_route('marcas.meta.show', $brand)
+                ->with('meta_error', 'No se puede verificar: primero configurá la conexión.');
+        }
+
+        if (! $connection->isConfigured()) {
+            return to_route('marcas.meta.show', $brand)
+                ->with('meta_error', 'No se puede verificar: falta el access token.');
+        }
+
+        if (blank($connection->instagram_account_id)) {
+            return to_route('marcas.meta.show', $brand)
+                ->with('meta_error', 'No se puede verificar: falta el Instagram Account ID.');
+        }
+
+        if ($verifier->verify($connection)) {
+            return to_route('marcas.meta.show', $brand)
+                ->with('status', 'La conexión con Instagram fue verificada.');
+        }
+
+        return to_route('marcas.meta.show', $brand);
     }
 
     private function ownedBrand(Brand $brand): Brand

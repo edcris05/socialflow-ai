@@ -27,6 +27,14 @@ return [
             'output' => env('OPENAI_OUTPUT_PRICE_PER_MILLION'),
         ],
     ],
+
+    'meta' => [
+        'base_url' => 'https://graph.instagram.com',
+        'version' => 'v26.0',
+        'connect_timeout' => 10,
+        'timeout' => 20,
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

@@ -8,8 +8,8 @@ use App\Http\Controllers\GenerationController;
 use App\Http\Controllers\KnowledgeEntryController;
 use App\Http\Controllers\MetaConnectionController;
 use App\Http\Controllers\PromptController;
-use App\Http\Controllers\StrategyController;
 use App\Http\Controllers\ScheduledPublicationController;
+use App\Http\Controllers\StrategyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('programacion/{scheduledPublication}/cancelar', [ScheduledPublicationController::class, 'cancel'])->name('programacion.cancel');
         Route::get('meta', [MetaConnectionController::class, 'show'])->name('meta.show');
         Route::post('meta', [MetaConnectionController::class, 'store'])->name('meta.store');
+        Route::post('meta/verificar', [MetaConnectionController::class, 'verify'])->name('meta.verify');
         Route::delete('meta/token', [MetaConnectionController::class, 'deleteToken'])->name('meta.token.destroy');
     });
 });

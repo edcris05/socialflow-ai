@@ -243,7 +243,9 @@ Future improvements explicitly deferred: Meta publishing, publication retries an
 
 ## Meta Connection v1
 
-Meta Connection v1 stores one manual connection per Brand as secure preparation only. It records optional Facebook Page and Instagram Professional Account identifiers separately, encrypts the access token with Laravel's `encrypted` cast, and shows only whether a token is configured. Saving manual configuration always results in `configured_unverified`; this milestone performs no external verification and never publishes.
+Meta Connection stores one manual connection per Brand. It records optional Facebook Page and Instagram Professional Account identifiers separately, encrypts the access token with Laravel's `encrypted` cast, and shows only whether a token is configured. Saving manual configuration always results in `configured_unverified`.
+
+The explicit verification action uses Instagram API with Instagram Login and sends one authenticated `GET https://graph.instagram.com/v26.0/me?fields=user_id,username` request. The returned `user_id` must match the configured Instagram Account ID before the connection becomes `verified`. Remote errors, invalid responses, and account mismatches are stored only as sanitized messages. `last_verified_at` represents the last successful verification and is preserved when a later re-verification fails. Verification never creates media containers or publications.
 
 The current official Meta documentation distinguishes Facebook Page access tokens from Instagram access tokens depending on the login path. It also describes Page-to-Instagram Professional Account relationships and different permission sets. SocialFlow therefore stores IDs and an optional scopes snapshot without hard-coding permissions or claiming that a connection is verified. Exact scopes, token lifecycle, OAuth, Page selection, reconnect, revocation, and app review remain for a future integration step.
 

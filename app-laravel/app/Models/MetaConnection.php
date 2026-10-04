@@ -51,7 +51,7 @@ class MetaConnection extends Model
         return match ($this->status) {
             self::STATUS_CONFIGURED_UNVERIFIED => 'CONFIGURADO — SIN VERIFICAR',
             self::STATUS_VERIFIED => 'VERIFICADO',
-            self::STATUS_ERROR => 'ERROR',
+            self::STATUS_ERROR => 'ERROR DE VERIFICACIÓN',
             default => 'NO CONFIGURADO',
         };
     }

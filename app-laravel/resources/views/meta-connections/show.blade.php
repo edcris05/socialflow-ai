@@ -3,15 +3,27 @@
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">Conexiones</p>
             <h1 class="mt-2 text-3xl font-semibold">Meta · {{ $brand->name }}</h1>
-            <p class="mt-3 max-w-2xl text-sm text-slate-600">Configuración manual segura para preparar una futura conexión. No verifica ni publica contenido.</p>
+            <p class="mt-3 max-w-2xl text-sm text-slate-600">Configuración manual segura para verificar la identidad de la cuenta. La verificación no publica contenido.</p>
         </div>
         <a href="{{ route('marcas.show', $brand) }}" class="inline-flex w-fit rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800">Volver a la marca</a>
     </div>
 
+    @if (session('meta_error'))
+        <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {{ session('meta_error') }}
+        </div>
+    @endif
+
     <section class="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold">META</h2>
-            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $connection ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700' }}">{{ $connection?->statusLabel() ?? 'NO CONFIGURADO' }}</span>
+            <span @class([
+                'rounded-full px-3 py-1 text-xs font-semibold',
+                'bg-emerald-100 text-emerald-800' => $connection?->status === \App\Models\MetaConnection::STATUS_VERIFIED,
+                'bg-red-100 text-red-800' => $connection?->status === \App\Models\MetaConnection::STATUS_ERROR,
+                'bg-amber-100 text-amber-800' => $connection && ! in_array($connection->status, [\App\Models\MetaConnection::STATUS_VERIFIED, \App\Models\MetaConnection::STATUS_ERROR], true),
+                'bg-slate-100 text-slate-700' => ! $connection,
+            ])>{{ $connection?->statusLabel() ?? 'NO CONFIGURADO' }}</span>
         </div>
 
         @if ($connection)
@@ -20,8 +32,30 @@
                 <div><dt class="font-semibold text-slate-900">Instagram Account ID</dt><dd class="mt-1">{{ $connection->instagram_account_id ?: 'No configurado' }}</dd></div>
                 <div><dt class="font-semibold text-slate-900">Token</dt><dd class="mt-1">{{ $connection->isConfigured() ? 'Token configurado: Sí' : 'Token configurado: No' }}</dd></div>
                 <div><dt class="font-semibold text-slate-900">Expiración</dt><dd class="mt-1">{{ $connection->token_expires_at?->format('d/m/Y H:i') ?? 'No indicada' }}</dd></div>
+                @if ($connection->last_verified_at)
+                    <div><dt class="font-semibold text-slate-900">Última verificación exitosa</dt><dd class="mt-1">{{ $connection->last_verified_at->format('d/m/Y H:i') }}</dd></div>
+                @endif
+                @if ($connection->status === \App\Models\MetaConnection::STATUS_ERROR && $connection->last_error)
+                    <div class="sm:col-span-2"><dt class="font-semibold text-red-800">Error</dt><dd class="mt-1 rounded-lg bg-red-50 px-3 py-2 text-red-800">{{ $connection->last_error }}</dd></div>
+                @endif
             </dl>
         @endif
+
+        <div class="mt-6 border-t border-slate-100 pt-5">
+            @if ($connection?->isConfigured() && filled($connection->instagram_account_id))
+                <form action="{{ route('marcas.meta.verify', $brand) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm">Verificar conexión</button>
+                    <p class="mt-2 text-sm text-slate-600">Consulta la identidad de la cuenta autenticada. No crea ni publica contenido.</p>
+                </form>
+            @elseif ($connection && ! $connection->isConfigured())
+                <p class="text-sm text-amber-800">Agregá un access token para habilitar la verificación.</p>
+            @elseif ($connection && blank($connection->instagram_account_id))
+                <p class="text-sm text-amber-800">Configurá el Instagram Account ID para habilitar la verificación.</p>
+            @else
+                <p class="text-sm text-slate-600">Guardá la configuración para habilitar la verificación.</p>
+            @endif
+        </div>
 
         <form action="{{ route('marcas.meta.store', $brand) }}" method="POST" class="mt-6 space-y-5">
             @csrf
