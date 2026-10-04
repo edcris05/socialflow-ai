@@ -29,6 +29,11 @@ class User extends Authenticatable
         return $this->hasMany(StrategyRun::class);
     }
 
+    public function uploadedPublicationMedia(): HasMany
+    {
+        return $this->hasMany(PublicationMedia::class, 'uploaded_by');
+    }
+
     /**
      * Get the attributes that should be cast.
      *

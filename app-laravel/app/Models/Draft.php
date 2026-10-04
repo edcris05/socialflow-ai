@@ -56,6 +56,18 @@ class Draft extends Model
         return $this->hasMany(ScheduledPublication::class);
     }
 
+    public function publicationMedia(): HasMany
+    {
+        return $this->hasMany(PublicationMedia::class);
+    }
+
+    public function currentPublicationMedia(): HasOne
+    {
+        return $this->hasOne(PublicationMedia::class)
+            ->whereNull('superseded_at')
+            ->latestOfMany();
+    }
+
     public function statusLabel(): string
     {
         return match ($this->status) {

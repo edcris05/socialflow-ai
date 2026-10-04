@@ -6,6 +6,7 @@ use App\Contracts\MetaPublisherInterface;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
+use App\Models\PublicationMedia;
 use App\Models\ScheduledPublication;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,6 @@ class PublicationOrchestrator
     public function publish(
         User $actor,
         ScheduledPublication $scheduledPublication,
-        InstagramPublicationPayload $payload,
     ): PublicationResult {
         $publication = $this->ownedPublication($actor, $scheduledPublication);
 
@@ -31,41 +31,52 @@ class PublicationOrchestrator
             );
         }
 
-        if (! $this->hasValidImageUrl($payload->imageUrl)) {
-            return PublicationResult::failed(
-                'MISSING_MEDIA_ASSET',
-                'La publicación requiere una URL HTTP(S) pública de una imagen aprobada.',
-            );
-        }
-
-        $claim = DB::transaction(function () use ($actor, $publication, $payload): array {
+        $claim = DB::transaction(function () use ($actor, $publication): array {
             $lockedPublication = ScheduledPublication::query()
                 ->whereKey($publication->getKey())
                 ->whereHas('brand.users', fn ($query) => $query->whereKey($actor->getKey()))
-                ->with('draft')
                 ->lockForUpdate()
                 ->firstOrFail();
+            $lockedDraft = Draft::query()
+                ->whereKey($lockedPublication->draft_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $currentMedia = PublicationMedia::query()
+                ->where('draft_id', $lockedDraft->getKey())
+                ->whereNull('superseded_at')
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+            $lockedDraft->setRelation('currentPublicationMedia', $currentMedia);
+            $lockedPublication->setRelation('draft', $lockedDraft);
 
             $connection = MetaConnection::query()
                 ->where('brand_id', $lockedPublication->brand_id)
                 ->lockForUpdate()
                 ->first();
 
-            $failure = $this->preconditionFailure($lockedPublication, $connection, $payload);
+            if ($connection !== null && filled($connection->instagram_account_id)) {
+                $existingAttempt = PublicationAttempt::query()
+                    ->where('scheduled_publication_id', $lockedPublication->getKey())
+                    ->where('provider', self::PROVIDER)
+                    ->where('target_account_id_snapshot', $connection->instagram_account_id)
+                    ->first();
+
+                if ($existingAttempt !== null) {
+                    return ['attempt' => null, 'result' => $this->existingResult($existingAttempt)];
+                }
+            }
+
+            $failure = $this->preconditionFailure($lockedPublication, $connection);
             if ($failure !== null) {
                 return ['attempt' => null, 'result' => $failure];
             }
 
             /** @var MetaConnection $connection */
+            /** @var PublicationMedia $media */
+            $media = $lockedPublication->draft->currentPublicationMedia;
             $targetAccountId = (string) $connection->instagram_account_id;
             $idempotencyKey = $this->idempotencyKey($lockedPublication, $targetAccountId);
-            $existingAttempt = PublicationAttempt::query()
-                ->where('idempotency_key', $idempotencyKey)
-                ->first();
-
-            if ($existingAttempt !== null) {
-                return ['attempt' => null, 'result' => $this->existingResult($existingAttempt)];
-            }
 
             $attempt = PublicationAttempt::create([
                 'scheduled_publication_id' => $lockedPublication->getKey(),
@@ -76,8 +87,8 @@ class PublicationOrchestrator
                 'attempt_count' => 1,
                 'idempotency_key' => $idempotencyKey,
                 'target_account_id_snapshot' => $targetAccountId,
-                'caption_snapshot' => $payload->caption,
-                'media_url_snapshot' => $payload->imageUrl,
+                'caption_snapshot' => $lockedPublication->draft->content,
+                'media_url_snapshot' => $media->public_url,
                 'started_at' => now(),
             ]);
 
@@ -174,7 +185,6 @@ class PublicationOrchestrator
     private function preconditionFailure(
         ScheduledPublication $publication,
         ?MetaConnection $connection,
-        InstagramPublicationPayload $payload,
     ): ?PublicationResult {
         if ($publication->status !== ScheduledPublication::STATUS_SCHEDULED) {
             return PublicationResult::failed('SCHEDULE_CANCELLED', 'La programación está cancelada.');
@@ -193,8 +203,25 @@ class PublicationOrchestrator
             return PublicationResult::failed('DRAFT_NOT_APPROVED', 'El borrador ya no está aprobado.');
         }
 
-        if ($payload->caption !== $draft->content) {
-            return PublicationResult::failed('APPROVED_CONTENT_MISMATCH', 'El caption no coincide con el contenido aprobado.');
+        $media = $draft->currentPublicationMedia;
+        if ($media === null) {
+            return PublicationResult::failed('MISSING_MEDIA_ASSET', 'El borrador no tiene una imagen vigente.');
+        }
+
+        if ($media->brand_id !== $publication->brand_id || $media->draft_id !== $draft->getKey()) {
+            return PublicationResult::failed('MEDIA_OWNERSHIP_MISMATCH', 'La imagen no pertenece a este borrador y marca.');
+        }
+
+        if ($media->status !== PublicationMedia::STATUS_APPROVED) {
+            return PublicationResult::failed('MEDIA_NOT_APPROVED', 'La imagen vigente requiere aprobación explícita.');
+        }
+
+        if (! $media->hasValidImage()) {
+            return PublicationResult::failed('MEDIA_INVALID', 'La imagen vigente no tiene un formato admitido para Meta.');
+        }
+
+        if (! $media->hasValidPublicUrl()) {
+            return PublicationResult::failed('MEDIA_NOT_PUBLICLY_ACCESSIBLE', 'La imagen no tiene una URL pública válida para Meta.');
         }
 
         if ($connection === null) {
@@ -280,14 +307,5 @@ class PublicationOrchestrator
             (string) $publication->getKey(),
             $targetAccountId,
         ]));
-    }
-
-    private function hasValidImageUrl(?string $imageUrl): bool
-    {
-        if (blank($imageUrl) || filter_var($imageUrl, FILTER_VALIDATE_URL) === false) {
-            return false;
-        }
-
-        return in_array(parse_url($imageUrl, PHP_URL_SCHEME), ['http', 'https'], true);
     }
 }

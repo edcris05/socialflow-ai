@@ -31,6 +31,8 @@
         @endif
 
         @if ($draft->status === 'approved')
+            @include('drafts._publication-media', ['publicationMedia' => $draft->currentPublicationMedia])
+
             <section class="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
                 <h2 class="text-lg font-semibold text-emerald-950">Programación</h2>
                 @if ($scheduledPublication)

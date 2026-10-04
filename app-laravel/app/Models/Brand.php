@@ -50,6 +50,11 @@ class Brand extends Model
         return $this->hasMany(ScheduledPublication::class);
     }
 
+    public function publicationMedia(): HasMany
+    {
+        return $this->hasMany(PublicationMedia::class);
+    }
+
     public function metaConnection(): HasOne
     {
         return $this->hasOne(MetaConnection::class);

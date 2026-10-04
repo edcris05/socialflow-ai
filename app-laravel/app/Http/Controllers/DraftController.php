@@ -39,7 +39,15 @@ class DraftController extends Controller
     public function edit(Brand $brand, Draft $draft): View
     {
         $brand = $this->ownedBrand($brand);
-        $draft = $this->ownedDraft($brand, $draft)->load(['approvedBy', 'contextSnapshot', 'rejectedBy', 'scheduledPublications' => fn ($query) => $query->where('status', 'scheduled')->latest('id')]);
+        $draft = $this->ownedDraft($brand, $draft)->load([
+            'approvedBy',
+            'contextSnapshot',
+            'currentPublicationMedia.approvedBy',
+            'currentPublicationMedia.rejectedBy',
+            'currentPublicationMedia.uploadedBy',
+            'rejectedBy',
+            'scheduledPublications' => fn ($query) => $query->where('status', 'scheduled')->latest('id'),
+        ]);
 
         $generationToken = null;
         if ($draft->status === Draft::STATUS_DRAFT && $draft->contextSnapshot !== null) {

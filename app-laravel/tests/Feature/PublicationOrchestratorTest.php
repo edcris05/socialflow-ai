@@ -6,9 +6,9 @@ use App\Models\Brand;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
+use App\Models\PublicationMedia;
 use App\Models\ScheduledPublication;
 use App\Models\User;
-use App\Services\Publishing\InstagramPublicationPayload;
 use App\Services\Publishing\PublicationOrchestrator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -34,6 +34,9 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake(function (Request $request) {
             if ($request->url() === self::CREATE_URL) {
+                $this->assertSame('Contenido aprobado', $request['caption']);
+                $this->assertSame('https://cdn.example.com/approved.jpg', $request['image_url']);
+
                 return Http::response(['id' => 'container_123']);
             }
 
@@ -44,9 +47,7 @@ class PublicationOrchestratorTest extends TestCase
             return Http::response(['id' => 'media_123']);
         });
         [$user, $brand, $draft, $publication, $connection] = $this->publication();
-        $payload = new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg');
-
-        $result = $this->orchestrator()->publish($user, $publication, $payload);
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertTrue($result->successful);
         $this->assertSame('container_123', $result->externalContainerId);
@@ -69,6 +70,9 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertNull($attempt->last_error_code);
         $this->assertNull($attempt->last_error_message);
         $draft->update(['content' => 'Edición posterior']);
+        PublicationMedia::query()->where('draft_id', $draft->getKey())->update([
+            'public_url' => 'https://cdn.example.com/replacement.jpg',
+        ]);
         $this->assertSame('Contenido aprobado', $attempt->fresh()->caption_snapshot);
         $this->assertSame('https://cdn.example.com/approved.jpg', $attempt->fresh()->media_url_snapshot);
         $this->assertSame($brand->getKey(), $attempt->scheduledPublication->brand_id);
@@ -83,11 +87,10 @@ class PublicationOrchestratorTest extends TestCase
             self::CREATE_URL => Http::response(['id' => 'container_123']),
             self::PUBLISH_URL => Http::response(['id' => 'media_123']),
         ]);
-        [$user, , $draft, $publication] = $this->publication();
-        $payload = new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg');
+        [$user, , , $publication] = $this->publication();
 
-        $first = $this->orchestrator()->publish($user, $publication, $payload);
-        $second = $this->orchestrator()->publish($user, $publication, $payload);
+        $first = $this->orchestrator()->publish($user, $publication);
+        $second = $this->orchestrator()->publish($user, $publication);
 
         $this->assertTrue($first->successful);
         $this->assertTrue($second->successful);
@@ -101,14 +104,10 @@ class PublicationOrchestratorTest extends TestCase
     {
         Config::set('services.meta.publishing_enabled', true);
         Http::preventStrayRequests();
-        [$user, , $draft, $publication, $connection] = $this->publication();
+        [$user, , , $publication, $connection] = $this->publication();
         $this->attempt($publication, $connection, PublicationAttempt::STATUS_PUBLISHING);
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $this->assertSame('PUBLICATION_IN_PROGRESS', $result->errorCode);
@@ -120,7 +119,7 @@ class PublicationOrchestratorTest extends TestCase
     {
         Config::set('services.meta.publishing_enabled', true);
         Http::preventStrayRequests();
-        [$user, , $draft, $publication, $connection] = $this->publication();
+        [$user, , , $publication, $connection] = $this->publication();
         $this->attempt(
             $publication,
             $connection,
@@ -128,11 +127,7 @@ class PublicationOrchestratorTest extends TestCase
             ['last_error_code' => 'META_CREATE_FAILED', 'last_error_message' => 'Error seguro.'],
         );
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $this->assertSame('META_CREATE_FAILED', $result->errorCode);
@@ -146,13 +141,9 @@ class PublicationOrchestratorTest extends TestCase
     {
         Config::set('services.meta.publishing_enabled', false);
         Http::preventStrayRequests();
-        [$user, , $draft, $publication] = $this->publication();
+        [$user, , , $publication] = $this->publication();
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $this->assertSame('PUBLISHING_DISABLED', $result->errorCode);
@@ -167,21 +158,26 @@ class PublicationOrchestratorTest extends TestCase
     ): void {
         Config::set('services.meta.publishing_enabled', true);
         Http::preventStrayRequests();
-        [$user, , $draft, $publication, $connection] = $this->publication();
-        $payload = new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg');
+        [$user, $brand, $draft, $publication, $connection] = $this->publication();
+        $media = PublicationMedia::query()->where('draft_id', $draft->getKey())->sole();
 
         if ($scenario === 'missing_media') {
-            $payload = new InstagramPublicationPayload($draft->content, null);
-        } elseif ($scenario === 'invalid_media') {
-            $payload = new InstagramPublicationPayload($draft->content, 'file:///tmp/image.jpg');
+            $media->delete();
+        } elseif ($scenario === 'unapproved_media') {
+            $media->update(['status' => PublicationMedia::STATUS_UPLOADED, 'approved_at' => null]);
+        } elseif ($scenario === 'invalid_media_url') {
+            $media->update(['public_url' => 'http://socialflow-ai.ddev.site/image.jpg']);
+        } elseif ($scenario === 'invalid_media_type') {
+            $media->update(['mime_type' => 'image/png']);
+        } elseif ($scenario === 'media_brand_mismatch') {
+            $otherBrand = Brand::factory()->create();
+            $media->update(['brand_id' => $otherBrand->getKey()]);
         } elseif ($scenario === 'future_schedule') {
             $publication->update(['scheduled_for' => now()->addMinute()]);
         } elseif ($scenario === 'cancelled_schedule') {
             $publication->update(['status' => ScheduledPublication::STATUS_CANCELLED]);
         } elseif ($scenario === 'non_approved_draft') {
             $draft->update(['status' => Draft::STATUS_DRAFT]);
-        } elseif ($scenario === 'caption_mismatch') {
-            $payload = new InstagramPublicationPayload('Contenido distinto', 'https://cdn.example.com/approved.jpg');
         } elseif ($scenario === 'connection_missing') {
             $connection->delete();
         } elseif ($scenario === 'connection_unverified') {
@@ -192,7 +188,7 @@ class PublicationOrchestratorTest extends TestCase
             $connection->update(['instagram_account_id' => null]);
         }
 
-        $result = $this->orchestrator()->publish($user, $publication, $payload);
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $this->assertSame($expectedCode, $result->errorCode);
@@ -205,11 +201,13 @@ class PublicationOrchestratorTest extends TestCase
     {
         return [
             'missing media' => ['missing_media', 'MISSING_MEDIA_ASSET'],
-            'invalid media' => ['invalid_media', 'MISSING_MEDIA_ASSET'],
+            'unapproved media' => ['unapproved_media', 'MEDIA_NOT_APPROVED'],
+            'invalid media URL' => ['invalid_media_url', 'MEDIA_NOT_PUBLICLY_ACCESSIBLE'],
+            'invalid media type' => ['invalid_media_type', 'MEDIA_INVALID'],
+            'media brand mismatch' => ['media_brand_mismatch', 'MEDIA_OWNERSHIP_MISMATCH'],
             'future schedule' => ['future_schedule', 'SCHEDULE_NOT_READY'],
             'cancelled schedule' => ['cancelled_schedule', 'SCHEDULE_CANCELLED'],
             'non-approved draft' => ['non_approved_draft', 'DRAFT_NOT_APPROVED'],
-            'caption mismatch' => ['caption_mismatch', 'APPROVED_CONTENT_MISMATCH'],
             'missing connection' => ['connection_missing', 'META_CONNECTION_MISSING'],
             'unverified connection' => ['connection_unverified', 'META_CONNECTION_UNVERIFIED'],
             'missing token' => ['token_missing', 'META_TOKEN_MISSING'],
@@ -221,15 +219,11 @@ class PublicationOrchestratorTest extends TestCase
     {
         Config::set('services.meta.publishing_enabled', true);
         Http::preventStrayRequests();
-        [, , $draft, $publication] = $this->publication();
+        [, , , $publication] = $this->publication();
         $otherUser = User::factory()->create();
 
         try {
-            $this->orchestrator()->publish(
-                $otherUser,
-                $publication,
-                new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-            );
+            $this->orchestrator()->publish($otherUser, $publication);
             $this->fail('Expected a cross-tenant publication to be hidden.');
         } catch (ModelNotFoundException) {
             $this->assertSame(0, PublicationAttempt::query()->count());
@@ -245,13 +239,9 @@ class PublicationOrchestratorTest extends TestCase
         Http::fake([
             self::CREATE_URL => Http::response(['error' => ['message' => 'raw fake-meta-token']], 400),
         ]);
-        [$user, , $draft, $publication] = $this->publication();
+        [$user, , , $publication] = $this->publication();
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $attempt = PublicationAttempt::query()->sole();
@@ -274,13 +264,9 @@ class PublicationOrchestratorTest extends TestCase
             self::CREATE_URL => Http::response(['id' => 'container_123']),
             self::PUBLISH_URL => Http::response(['error' => ['message' => 'raw details']], 400),
         ]);
-        [$user, , $draft, $publication] = $this->publication();
+        [$user, , , $publication] = $this->publication();
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $attempt = PublicationAttempt::query()->sole();
@@ -301,10 +287,15 @@ class PublicationOrchestratorTest extends TestCase
             self::PUBLISH_URL => Http::failedConnection('raw uncertain network detail'),
         ]);
         [$user, , $draft, $publication] = $this->publication();
-        $payload = new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg');
 
-        $first = $this->orchestrator()->publish($user, $publication, $payload);
-        $second = $this->orchestrator()->publish($user, $publication, $payload);
+        $first = $this->orchestrator()->publish($user, $publication);
+        $media = PublicationMedia::query()->where('draft_id', $draft->getKey())->sole();
+        $media->update([
+            'public_url' => 'https://cdn.example.com/replacement.jpg',
+            'status' => PublicationMedia::STATUS_UPLOADED,
+            'approved_at' => null,
+        ]);
+        $second = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($first->successful);
         $this->assertTrue($first->outcomeUncertain);
@@ -316,6 +307,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame('container_123', $attempt->external_container_id);
         $this->assertNull($attempt->external_media_id);
         $this->assertNull($attempt->published_at);
+        $this->assertSame('https://cdn.example.com/approved.jpg', $attempt->media_url_snapshot);
         $this->assertStringNotContainsString('raw uncertain network detail', $attempt->toJson());
         Http::assertSentCount(2);
     }
@@ -329,13 +321,9 @@ class PublicationOrchestratorTest extends TestCase
             self::CREATE_URL => Http::response(['id' => 'container_ambiguous']),
             self::PUBLISH_URL => Http::response($body, $status, ['Content-Type' => 'application/json']),
         ]);
-        [$user, , $draft, $publication] = $this->publication();
+        [$user, , , $publication] = $this->publication();
 
-        $result = $this->orchestrator()->publish(
-            $user,
-            $publication,
-            new InstagramPublicationPayload($draft->content, 'https://cdn.example.com/approved.jpg'),
-        );
+        $result = $this->orchestrator()->publish($user, $publication);
 
         $this->assertFalse($result->successful);
         $this->assertSame('META_PUBLISH_OUTCOME_UNKNOWN', $result->errorCode);
@@ -439,6 +427,23 @@ class PublicationOrchestratorTest extends TestCase
             'access_token' => 'fake-meta-token',
             'status' => MetaConnection::STATUS_VERIFIED,
             'last_verified_at' => '2026-10-04 10:00:00',
+        ]);
+        PublicationMedia::create([
+            'brand_id' => $brand->getKey(),
+            'draft_id' => $draft->getKey(),
+            'uploaded_by' => $user->getKey(),
+            'type' => PublicationMedia::TYPE_IMAGE,
+            'original_filename' => 'approved.jpg',
+            'storage_disk' => 'local',
+            'storage_path' => 'publication-media/'.$brand->getKey().'/approved.jpg',
+            'public_url' => 'https://cdn.example.com/approved.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 1024,
+            'width' => 1080,
+            'height' => 1080,
+            'status' => PublicationMedia::STATUS_APPROVED,
+            'approved_by' => $user->getKey(),
+            'approved_at' => '2026-10-04 10:00:00',
         ]);
 
         return [$user, $brand, $draft, $publication, $connection];
