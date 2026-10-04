@@ -33,6 +33,7 @@ return [
         'version' => 'v26.0',
         'connect_timeout' => 10,
         'timeout' => 20,
+        'publishing_enabled' => filter_var(env('META_PUBLISHING_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
     'postmark' => [
