@@ -25,7 +25,8 @@
                 $connection = $brand->metaConnection;
                 $attempt = $publication->publicationAttempts->first();
                 $publishingEnabled = config('services.meta.publishing_enabled', false);
-                $mediaHost = filled($media?->public_url) ? parse_url($media->public_url, PHP_URL_HOST) : null;
+                $effectiveMediaUrl = $media?->effectivePublicUrl();
+                $mediaHost = filled($effectiveMediaUrl) ? parse_url($effectiveMediaUrl, PHP_URL_HOST) : null;
                 $preflightLabel = match (true) {
                     $media === null => 'SIN MEDIA',
                     $media->preflight_status === \App\Models\PublicationMedia::PREFLIGHT_PASSED && ! $media->hasFreshPreflight() => 'REQUIERE NUEVA COMPROBACIÓN (VENCIDA)',

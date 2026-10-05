@@ -85,7 +85,7 @@ class PublicationOrchestrator
                 'idempotency_key' => $idempotencyKey,
                 'target_account_id_snapshot' => $targetAccountId,
                 'caption_snapshot' => $lockedPublication->draft->content,
-                'media_url_snapshot' => $media->public_url,
+                'media_url_snapshot' => $media->effectivePublicUrl(),
                 'started_at' => now(),
             ]);
 

@@ -44,7 +44,7 @@ class PublicMediaPreflight
             return $this->failure('MEDIA_NOT_APPROVED', 'La imagen vigente requiere aprobación explícita.');
         }
 
-        $url = $media->public_url;
+        $url = $media->effectivePublicUrl();
 
         if (! PublicMediaUrl::isValid($url)) {
             return $this->failure('MEDIA_URL_UNSAFE', 'La URL pública no cumple la política de seguridad.');

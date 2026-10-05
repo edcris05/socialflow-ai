@@ -7,6 +7,7 @@ use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
 use App\Models\PublicationMedia;
+use App\Models\PublicMediaHosting;
 use App\Models\ScheduledPublication;
 use App\Models\User;
 use App\Services\Publishing\PublicationOrchestrator;
@@ -149,6 +150,71 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame('PUBLISHING_DISABLED', $result->errorCode);
         $this->assertSame(0, PublicationAttempt::query()->count());
         Http::assertNothingSent();
+    }
+
+    public function test_managed_hosting_never_bypasses_required_preflight(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        [$user, , $draft, $publication] = $this->publication();
+        $media = PublicationMedia::query()->where('draft_id', $draft->getKey())->sole();
+        $media->update([
+            'public_url' => null,
+            ...PublicationMedia::resetPreflightAttributes(),
+        ]);
+        PublicMediaHosting::create([
+            'publication_media_id' => $media->getKey(),
+            'status' => PublicMediaHosting::STATUS_HOSTED,
+            'provider' => 'local',
+            'disk' => 'public-media',
+            'object_key' => 'publication-media/'.$media->getKey().'/managed.jpg',
+            'public_url' => 'https://media.example.com/managed.jpg',
+            'content_type' => 'image/jpeg',
+            'size_bytes' => 1024,
+            'checksum_sha256' => hash('sha256', 'managed'),
+            'hosted_at' => now(),
+        ]);
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame('MEDIA_PREFLIGHT_REQUIRED', $result->errorCode);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_managed_hosting_url_is_used_for_meta_payload_and_snapshot(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Http::fake([
+            self::CREATE_URL => Http::response(['id' => 'container_managed']),
+            self::PUBLISH_URL => Http::response(['id' => 'media_managed']),
+        ]);
+        [$user, , $draft, $publication] = $this->publication();
+        $media = PublicationMedia::query()->where('draft_id', $draft->getKey())->sole();
+        $managedUrl = 'https://media.example.com/managed.jpg';
+        PublicMediaHosting::create([
+            'publication_media_id' => $media->getKey(),
+            'status' => PublicMediaHosting::STATUS_HOSTED,
+            'provider' => 'local',
+            'disk' => 'public-media',
+            'object_key' => 'publication-media/'.$media->getKey().'/managed.jpg',
+            'public_url' => $managedUrl,
+            'content_type' => 'image/jpeg',
+            'size_bytes' => 1024,
+            'checksum_sha256' => hash('sha256', 'managed'),
+            'hosted_at' => now(),
+        ]);
+        $media->update(['preflight_final_url' => $managedUrl]);
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertTrue($result->successful);
+        $this->assertSame($managedUrl, PublicationAttempt::query()->sole()->media_url_snapshot);
+        Http::assertSent(fn (Request $request): bool => $request->url() !== self::CREATE_URL
+            || $request['image_url'] === $managedUrl);
+        Http::assertSentCount(2);
     }
 
     #[DataProvider('localPreconditions')]

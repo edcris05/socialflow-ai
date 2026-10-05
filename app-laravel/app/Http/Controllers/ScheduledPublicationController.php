@@ -23,7 +23,8 @@ class ScheduledPublicationController extends Controller
             ->with([
                 'draft' => fn ($query) => $query->with([
                     'currentPublicationMedia' => fn ($mediaQuery) => $mediaQuery
-                        ->where('brand_id', $brand->getKey()),
+                        ->where('brand_id', $brand->getKey())
+                        ->with('publicHosting'),
                 ]),
                 'scheduledBy',
                 'cancelledBy',

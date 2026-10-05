@@ -10,6 +10,7 @@ use App\Http\Controllers\ManualPublicationController;
 use App\Http\Controllers\MetaConnectionController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PublicationMediaController;
+use App\Http\Controllers\PublicationMediaHostingController;
 use App\Http\Controllers\PublicationMediaPreflightController;
 use App\Http\Controllers\ScheduledPublicationController;
 use App\Http\Controllers\StrategyController;
@@ -70,6 +71,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('borradores/{draft}/media/{publicationMedia}/url-publica', [PublicationMediaController::class, 'updatePublicUrl'])->name('borradores.media.public-url.update');
         Route::patch('borradores/{draft}/media/{publicationMedia}/aprobar', [PublicationMediaController::class, 'approve'])->name('borradores.media.approve');
         Route::patch('borradores/{draft}/media/{publicationMedia}/rechazar', [PublicationMediaController::class, 'reject'])->name('borradores.media.reject');
+        Route::post('borradores/{draft}/media/{publicationMedia}/hosting', [PublicationMediaHostingController::class, 'store'])->name('borradores.media.hosting.store');
         Route::post('borradores/{draft}/media/{publicationMedia}/preflight', [PublicationMediaPreflightController::class, 'store'])->name('borradores.media.preflight.store');
         Route::post('borradores/{draft}/generar', [GenerationController::class, 'store'])->name('borradores.generar');
         Route::get('borradores/{draft}/prompt-preview', [PromptController::class, 'preview'])->name('borradores.prompt.preview');

@@ -43,6 +43,7 @@ class DraftController extends Controller
             'approvedBy',
             'contextSnapshot',
             'currentPublicationMedia.approvedBy',
+            'currentPublicationMedia.publicHosting',
             'currentPublicationMedia.rejectedBy',
             'currentPublicationMedia.uploadedBy',
             'rejectedBy',

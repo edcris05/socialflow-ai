@@ -264,7 +264,8 @@ class PublicationMediaTest extends TestCase
             ->assertOk()
             ->assertSee('CARGADA — SIN APROBAR')
             ->assertSee('Aprobar imagen')
-            ->assertSee('URL pública para Meta');
+            ->assertSee('URL pública manual / avanzada')
+            ->assertSee('NO CONFIGURADO');
 
         $media = PublicationMedia::query()->sole();
         $media->update([
@@ -276,7 +277,7 @@ class PublicationMediaTest extends TestCase
         $this->actingAs($user)
             ->get(route('marcas.borradores.edit', [$brand, $draft]))
             ->assertOk()
-            ->assertSee('Estado URL pública:')
+            ->assertSee('Estado preflight:')
             ->assertSee('SIN VERIFICAR')
             ->assertSee('Verificar imagen pública');
     }

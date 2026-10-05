@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Draft;
 use App\Models\PublicationMedia;
+use App\Models\PublicMediaHosting;
 use App\Services\Publishing\PublicMediaUrl;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -100,18 +101,33 @@ class PublicationMediaController extends Controller
             'public_url' => ['nullable', 'string', 'max:2048', $this->publicUrlRule()],
         ]);
 
-        $media->update([
+        $attributes = [
             'public_url' => $validated['public_url'] ?? null,
-            'status' => PublicationMedia::STATUS_UPLOADED,
-            'approved_by' => null,
-            'approved_at' => null,
-            'rejected_by' => null,
-            'rejected_at' => null,
-            'rejection_reason' => null,
-            ...PublicationMedia::resetPreflightAttributes(),
-        ]);
+        ];
+        $hasManagedHosting = $media->publicHosting()
+            ->where('status', PublicMediaHosting::STATUS_HOSTED)
+            ->exists();
 
-        return $this->redirectToDraft($brand, $draft, 'URL pública actualizada. La imagen requiere una nueva aprobación.');
+        if (! $hasManagedHosting) {
+            $attributes = [
+                ...$attributes,
+                'status' => PublicationMedia::STATUS_UPLOADED,
+                'approved_by' => null,
+                'approved_at' => null,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_reason' => null,
+                ...PublicationMedia::resetPreflightAttributes(),
+            ];
+        }
+
+        $media->update($attributes);
+
+        $message = $hasManagedHosting
+            ? 'URL pública manual actualizada. La copia administrada continúa siendo la URL efectiva.'
+            : 'URL pública actualizada. La imagen requiere una nueva aprobación.';
+
+        return $this->redirectToDraft($brand, $draft, $message);
     }
 
     public function approve(Brand $brand, Draft $draft, PublicationMedia $publicationMedia): RedirectResponse

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'brand_id',
@@ -81,6 +82,11 @@ class PublicationMedia extends Model
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
+    public function publicHosting(): HasOne
+    {
+        return $this->hasOne(PublicMediaHosting::class);
+    }
+
     public function hasValidImage(): bool
     {
         return $this->type === self::TYPE_IMAGE && $this->mime_type === 'image/jpeg';
@@ -88,7 +94,35 @@ class PublicationMedia extends Model
 
     public function hasValidPublicUrl(): bool
     {
-        return PublicMediaUrl::isValid($this->public_url);
+        return PublicMediaUrl::isValid($this->effectivePublicUrl());
+    }
+
+    /**
+     * A successfully managed copy takes precedence; the manual URL remains a
+     * transitional fallback and never becomes the identity of the asset.
+     */
+    public function effectivePublicUrl(): ?string
+    {
+        /** @var PublicMediaHosting|null $hosting */
+        $hosting = $this->relationLoaded('publicHosting')
+            ? $this->getRelation('publicHosting')
+            : $this->publicHosting()->first();
+
+        if ($hosting?->status === PublicMediaHosting::STATUS_HOSTED && filled($hosting->public_url)) {
+            return $hosting->public_url;
+        }
+
+        return $this->public_url;
+    }
+
+    public function publicHostingStatus(): string
+    {
+        /** @var PublicMediaHosting|null $hosting */
+        $hosting = $this->relationLoaded('publicHosting')
+            ? $this->getRelation('publicHosting')
+            : $this->publicHosting()->first();
+
+        return $hosting?->status ?? PublicMediaHosting::STATUS_NOT_HOSTED;
     }
 
     public function isPublishable(): bool

@@ -2,7 +2,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h2 class="text-lg font-semibold text-sky-950">Imagen para publicación</h2>
-            <p class="mt-1 text-sm text-sky-900">La aprobación de la imagen es independiente de la aprobación del borrador.</p>
+            <p class="mt-1 text-sm text-sky-900">La imagen privada, su aprobación, la copia pública y el preflight son estados independientes.</p>
         </div>
         <span class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-sky-950">
             {{ $publicationMedia?->statusLabel() ?? 'SIN IMAGEN' }}
@@ -10,18 +10,36 @@
     </div>
 
     @if ($publicationMedia)
+        @php
+            $hosting = $publicationMedia->publicHosting;
+            $hostingConfigured = filled(config('filesystems.public_media_disk'));
+            $hostingLabel = $hostingConfigured
+                ? ($hosting?->statusLabel() ?? 'NO ALOJADA')
+                : 'NO CONFIGURADO';
+            $effectivePublicUrl = $publicationMedia->effectivePublicUrl();
+            $effectivePublicHost = filled($effectivePublicUrl)
+                ? parse_url($effectivePublicUrl, PHP_URL_HOST)
+                : null;
+            $canHost = $hostingConfigured
+                && $publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED
+                && ! in_array($hosting?->status, [
+                    \App\Models\PublicMediaHosting::STATUS_HOSTING,
+                    \App\Models\PublicMediaHosting::STATUS_HOSTED,
+                ], true);
+        @endphp
+
         <div class="mt-5 grid gap-5 md:grid-cols-[minmax(0,16rem)_1fr]">
             <img
                 src="{{ route('marcas.borradores.media.show', [$brand, $draft, $publicationMedia]) }}"
-                alt="Vista previa de la imagen para publicación"
+                alt="Vista previa de la imagen privada para publicación"
                 class="max-h-72 w-full rounded-lg border border-sky-200 bg-white object-contain"
             >
             <div class="space-y-2 text-sm text-sky-950">
+                <p class="font-semibold uppercase tracking-wide text-sky-700">Imagen privada</p>
                 <p><span class="font-semibold">Archivo:</span> {{ $publicationMedia->original_filename }}</p>
                 <p><span class="font-semibold">Formato:</span> {{ $publicationMedia->mime_type }}</p>
                 <p><span class="font-semibold">Dimensiones:</span> {{ $publicationMedia->width ?? '?' }} × {{ $publicationMedia->height ?? '?' }} px</p>
                 <p><span class="font-semibold">Tamaño:</span> {{ number_format($publicationMedia->size_bytes / 1024, 0, ',', '.') }} KB</p>
-                <p class="break-all"><span class="font-semibold">URL pública:</span> {{ $publicationMedia->public_url ?: 'NO CONFIGURADA' }}</p>
                 @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED)
                     <p class="font-semibold text-emerald-800">Aprobada por {{ $publicationMedia->approvedBy?->name ?? 'Usuario eliminado' }} el {{ $publicationMedia->approved_at?->format('d/m/Y H:i') }}.</p>
                 @elseif ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_REJECTED)
@@ -30,50 +48,83 @@
                         <p class="text-red-800">Motivo: {{ $publicationMedia->rejection_reason }}</p>
                     @endif
                 @endif
-                @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED)
-                    <div class="mt-3 rounded-lg border border-sky-200 bg-white p-3">
-                        <p><span class="font-semibold">Estado URL pública:</span> {{ $publicationMedia->preflightStatusLabel() }}</p>
-                        @if ($publicationMedia->preflight_checked_at)
-                            <p><span class="font-semibold">Última comprobación:</span> {{ $publicationMedia->preflight_checked_at->format('d/m/Y H:i:s') }}</p>
-                        @endif
-                        @if ($publicationMedia->preflight_content_type)
-                            <p><span class="font-semibold">Content-Type:</span> {{ $publicationMedia->preflight_content_type }}</p>
-                        @endif
-                        @if ($publicationMedia->preflight_content_length !== null)
-                            <p><span class="font-semibold">Tamaño remoto:</span> {{ number_format($publicationMedia->preflight_content_length / 1024, 0, ',', '.') }} KB</p>
-                        @endif
-                        @if ($publicationMedia->preflight_final_url)
-                            <p class="break-all"><span class="font-semibold">URL verificada:</span> {{ $publicationMedia->preflight_final_url }}</p>
-                        @endif
-                        @if ($publicationMedia->preflight_error_message)
-                            <p class="font-semibold text-red-800">{{ $publicationMedia->preflight_error_message }}</p>
-                        @endif
-                    </div>
-                @endif
             </div>
+        </div>
+
+        <div class="mt-5 grid gap-4 lg:grid-cols-2">
+            <section class="rounded-lg border border-sky-200 bg-white p-4 text-sm text-sky-950">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="font-semibold uppercase tracking-wide text-sky-700">Public hosting</h3>
+                    <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold">{{ $hostingLabel }}</span>
+                </div>
+                <p class="mt-2 text-sky-900">Copia derivada y públicamente accesible para Meta. El archivo privado original permanece separado.</p>
+                @if ($hosting?->status === \App\Models\PublicMediaHosting::STATUS_HOSTED)
+                    <dl class="mt-3 space-y-2">
+                        <div><dt class="inline font-semibold">Provider:</dt> <dd class="inline">{{ $hosting->provider }}</dd></div>
+                        <div><dt class="inline font-semibold">Disk:</dt> <dd class="inline">{{ $hosting->disk }}</dd></div>
+                        <div><dt class="inline font-semibold">Host público:</dt> <dd class="inline break-all">{{ parse_url($hosting->public_url, PHP_URL_HOST) ?: 'NO DISPONIBLE' }}</dd></div>
+                        <div><dt class="inline font-semibold">Alojada:</dt> <dd class="inline">{{ $hosting->hosted_at?->format('d/m/Y H:i:s') }}</dd></div>
+                        @if ($hosting->checksum_sha256)
+                            <div><dt class="inline font-semibold">SHA-256:</dt> <dd class="inline font-mono">{{ \Illuminate\Support\Str::limit($hosting->checksum_sha256, 12, '') }}…</dd></div>
+                        @endif
+                    </dl>
+                @elseif ($hosting?->status === \App\Models\PublicMediaHosting::STATUS_FAILED)
+                    <p class="mt-3 font-semibold text-red-800">{{ $hosting->last_error_message }}</p>
+                @elseif (! $hostingConfigured)
+                    <p class="mt-3 font-semibold text-amber-800">Configura un disk público explícito antes de preparar la copia.</p>
+                @endif
+
+                @if ($canHost)
+                    <form action="{{ route('marcas.borradores.media.hosting.store', [$brand, $draft, $publicationMedia]) }}" method="POST" class="mt-4">
+                        @csrf
+                        <button class="rounded-lg bg-cyan-800 px-4 py-2.5 text-sm font-semibold text-white">Preparar imagen para publicación</button>
+                    </form>
+                @endif
+            </section>
+
+            <section class="rounded-lg border border-sky-200 bg-white p-4 text-sm text-sky-950">
+                <h3 class="font-semibold uppercase tracking-wide text-sky-700">URL efectiva y preflight</h3>
+                <p class="mt-2 break-all"><span class="font-semibold">URL efectiva:</span> {{ $effectivePublicUrl ?: 'NO CONFIGURADA' }}</p>
+                <p><span class="font-semibold">Origen:</span> {{ $hosting?->status === \App\Models\PublicMediaHosting::STATUS_HOSTED ? 'HOSTING ADMINISTRADO' : 'URL MANUAL' }}</p>
+                <p><span class="font-semibold">Host:</span> {{ $effectivePublicHost ?: 'NO CONFIGURADO' }}</p>
+                <p class="mt-3"><span class="font-semibold">Estado preflight:</span> {{ $publicationMedia->preflightStatusLabel() }}</p>
+                @if ($publicationMedia->preflight_checked_at)
+                    <p><span class="font-semibold">Última comprobación:</span> {{ $publicationMedia->preflight_checked_at->format('d/m/Y H:i:s') }}</p>
+                @endif
+                @if ($publicationMedia->preflight_content_type)
+                    <p><span class="font-semibold">Content-Type:</span> {{ $publicationMedia->preflight_content_type }}</p>
+                @endif
+                @if ($publicationMedia->preflight_content_length !== null)
+                    <p><span class="font-semibold">Tamaño remoto:</span> {{ number_format($publicationMedia->preflight_content_length / 1024, 0, ',', '.') }} KB</p>
+                @endif
+                @if ($publicationMedia->preflight_error_message)
+                    <p class="mt-2 font-semibold text-red-800">{{ $publicationMedia->preflight_error_message }}</p>
+                @endif
+
+                @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED && $publicationMedia->hasValidPublicUrl())
+                    <form action="{{ route('marcas.borradores.media.preflight.store', [$brand, $draft, $publicationMedia]) }}" method="POST" class="mt-4">
+                        @csrf
+                        <button class="rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white">Verificar imagen pública</button>
+                    </form>
+                @endif
+            </section>
         </div>
 
         <form action="{{ route('marcas.borradores.media.public-url.update', [$brand, $draft, $publicationMedia]) }}" method="POST" class="mt-5">
             @csrf
             @method('PATCH')
-            <label for="public_url" class="block text-sm font-semibold text-sky-950">URL pública para Meta</label>
-            <p class="mt-1 text-sm text-sky-900">Debe ser una URL HTTP(S) externa. La ruta privada local sólo sirve para esta vista previa.</p>
+            <label for="public_url" class="block text-sm font-semibold text-sky-950">URL pública manual / avanzada</label>
+            <p class="mt-1 text-sm text-sky-900">Se usa como fallback. Una copia administrada alojada correctamente siempre tiene precedencia.</p>
             @error('public_url')
                 <p class="mt-1 text-sm font-semibold text-red-700">{{ $message }}</p>
             @enderror
             <div class="mt-2 flex flex-wrap gap-3">
                 <input id="public_url" name="public_url" type="url" maxlength="2048" value="{{ old('public_url', $publicationMedia->public_url) }}" class="min-w-0 flex-1 rounded-lg border-sky-300 bg-white" placeholder="https://cdn.example.com/imagen.jpg">
-                <button class="rounded-lg bg-sky-800 px-4 py-2.5 text-sm font-semibold text-white">Guardar URL</button>
+                <button class="rounded-lg bg-sky-800 px-4 py-2.5 text-sm font-semibold text-white">Guardar URL manual</button>
             </div>
         </form>
 
         <div class="mt-5 flex flex-wrap gap-3">
-            @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED && filled($publicationMedia->public_url))
-                <form action="{{ route('marcas.borradores.media.preflight.store', [$brand, $draft, $publicationMedia]) }}" method="POST">
-                    @csrf
-                    <button class="rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white">Verificar imagen pública</button>
-                </form>
-            @endif
             <form action="{{ route('marcas.borradores.media.approve', [$brand, $draft, $publicationMedia]) }}" method="POST">
                 @csrf
                 @method('PATCH')
@@ -91,13 +142,13 @@
     <form action="{{ route('marcas.borradores.media.store', [$brand, $draft]) }}" method="POST" enctype="multipart/form-data" class="mt-6 border-t border-sky-200 pt-5">
         @csrf
         <label for="image" class="block text-sm font-semibold text-sky-950">{{ $publicationMedia ? 'Reemplazar imagen' : 'Cargar imagen' }}</label>
-        <p class="mt-1 text-sm text-sky-900">Sólo JPEG, máximo 8 MB. Un reemplazo siempre queda sin aprobar y conserva el archivo anterior para auditoría.</p>
+        <p class="mt-1 text-sm text-sky-900">Sólo JPEG, máximo 8 MB. Un reemplazo queda sin aprobar ni alojar y conserva los assets anteriores para auditoría.</p>
         @error('image')
             <p class="mt-1 text-sm font-semibold text-red-700">{{ $message }}</p>
         @enderror
         <div class="mt-3 grid gap-3 md:grid-cols-2">
             <input id="image" name="image" type="file" accept="image/jpeg,.jpg,.jpeg" required class="block w-full rounded-lg border border-sky-300 bg-white p-2 text-sm">
-            <input name="public_url" type="url" maxlength="2048" value="{{ old('public_url') }}" class="block w-full rounded-lg border-sky-300 bg-white" placeholder="URL pública externa (opcional)">
+            <input name="public_url" type="url" maxlength="2048" value="{{ old('public_url') }}" class="block w-full rounded-lg border-sky-300 bg-white" placeholder="URL pública manual (opcional)">
         </div>
         <button class="mt-3 rounded-lg bg-sky-800 px-4 py-2.5 text-sm font-semibold text-white">{{ $publicationMedia ? 'Cargar reemplazo' : 'Cargar imagen' }}</button>
     </form>
