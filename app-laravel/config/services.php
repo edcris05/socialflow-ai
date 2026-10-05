@@ -36,6 +36,17 @@ return [
         'publishing_enabled' => filter_var(env('META_PUBLISHING_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
+    'publication_media' => [
+        'allowed_hosts' => array_values(array_filter(array_map(
+            static fn (string $host): string => strtolower(trim($host)),
+            explode(',', (string) env('PUBLIC_MEDIA_ALLOWED_HOSTS', '')),
+        ))),
+        'connect_timeout' => (int) env('PUBLIC_MEDIA_CONNECT_TIMEOUT', 5),
+        'timeout' => (int) env('PUBLIC_MEDIA_TIMEOUT', 10),
+        'max_bytes' => (int) env('PUBLIC_MEDIA_MAX_BYTES', 8 * 1024 * 1024),
+        'preflight_fresh_minutes' => (int) env('PUBLIC_MEDIA_PREFLIGHT_FRESH_MINUTES', 15),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

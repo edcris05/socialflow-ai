@@ -55,16 +55,13 @@ class PublicationOrchestrator
                 ->lockForUpdate()
                 ->first();
 
-            if ($connection !== null && filled($connection->instagram_account_id)) {
-                $existingAttempt = PublicationAttempt::query()
-                    ->where('scheduled_publication_id', $lockedPublication->getKey())
-                    ->where('provider', self::PROVIDER)
-                    ->where('target_account_id_snapshot', $connection->instagram_account_id)
-                    ->first();
+            $existingAttempt = PublicationAttempt::query()
+                ->where('scheduled_publication_id', $lockedPublication->getKey())
+                ->where('provider', self::PROVIDER)
+                ->first();
 
-                if ($existingAttempt !== null) {
-                    return ['attempt' => null, 'result' => $this->existingResult($existingAttempt)];
-                }
+            if ($existingAttempt !== null) {
+                return ['attempt' => null, 'result' => $this->existingResult($existingAttempt)];
             }
 
             $failure = $this->preconditionFailure($lockedPublication, $connection);
@@ -222,6 +219,10 @@ class PublicationOrchestrator
 
         if (! $media->hasValidPublicUrl()) {
             return PublicationResult::failed('MEDIA_NOT_PUBLICLY_ACCESSIBLE', 'La imagen no tiene una URL pública válida para Meta.');
+        }
+
+        if (! $media->hasFreshPreflight()) {
+            return PublicationResult::failed('MEDIA_PREFLIGHT_REQUIRED', 'La imagen pública requiere un preflight reciente.');
         }
 
         if ($connection === null) {

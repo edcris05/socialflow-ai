@@ -180,6 +180,8 @@ class PublicationMediaTest extends TestCase
         $this->assertSame(PublicationMedia::STATUS_UPLOADED, $newMedia->status);
         $this->assertNull($newMedia->approved_by);
         $this->assertNull($newMedia->approved_at);
+        $this->assertSame(PublicationMedia::PREFLIGHT_NOT_CHECKED, $newMedia->preflight_status);
+        $this->assertNull($newMedia->preflight_checked_at);
     }
 
     public function test_changing_public_url_resets_existing_approval(): void
@@ -189,6 +191,11 @@ class PublicationMediaTest extends TestCase
             'status' => PublicationMedia::STATUS_APPROVED,
             'approved_by' => $user->getKey(),
             'approved_at' => now(),
+            'preflight_status' => PublicationMedia::PREFLIGHT_PASSED,
+            'preflight_checked_at' => now(),
+            'preflight_final_url' => 'https://cdn.example.com/image.jpg',
+            'preflight_content_type' => 'image/jpeg',
+            'preflight_content_length' => 1024,
         ]);
 
         $this->actingAs($user)
@@ -202,6 +209,11 @@ class PublicationMediaTest extends TestCase
         $this->assertSame(PublicationMedia::STATUS_UPLOADED, $media->status);
         $this->assertNull($media->approved_by);
         $this->assertNull($media->approved_at);
+        $this->assertSame(PublicationMedia::PREFLIGHT_NOT_CHECKED, $media->preflight_status);
+        $this->assertNull($media->preflight_checked_at);
+        $this->assertNull($media->preflight_final_url);
+        $this->assertNull($media->preflight_content_type);
+        $this->assertNull($media->preflight_content_length);
     }
 
     #[DataProvider('blockedPublicUrls')]
@@ -253,6 +265,20 @@ class PublicationMediaTest extends TestCase
             ->assertSee('CARGADA — SIN APROBAR')
             ->assertSee('Aprobar imagen')
             ->assertSee('URL pública para Meta');
+
+        $media = PublicationMedia::query()->sole();
+        $media->update([
+            'status' => PublicationMedia::STATUS_APPROVED,
+            'approved_by' => $user->getKey(),
+            'approved_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('marcas.borradores.edit', [$brand, $draft]))
+            ->assertOk()
+            ->assertSee('Estado URL pública:')
+            ->assertSee('SIN VERIFICAR')
+            ->assertSee('Verificar imagen pública');
     }
 
     /** @return array{User, Brand, Draft} */

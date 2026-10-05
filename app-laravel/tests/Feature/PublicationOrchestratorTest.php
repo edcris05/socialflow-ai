@@ -186,6 +186,8 @@ class PublicationOrchestratorTest extends TestCase
             $connection->update(['access_token' => null]);
         } elseif ($scenario === 'account_missing') {
             $connection->update(['instagram_account_id' => null]);
+        } elseif ($scenario === 'preflight_expired') {
+            $media->update(['preflight_checked_at' => now()->subMinutes(16)]);
         }
 
         $result = $this->orchestrator()->publish($user, $publication);
@@ -212,6 +214,7 @@ class PublicationOrchestratorTest extends TestCase
             'unverified connection' => ['connection_unverified', 'META_CONNECTION_UNVERIFIED'],
             'missing token' => ['token_missing', 'META_TOKEN_MISSING'],
             'missing account ID' => ['account_missing', 'META_ACCOUNT_MISSING'],
+            'expired preflight' => ['preflight_expired', 'MEDIA_PREFLIGHT_REQUIRED'],
         ];
     }
 
@@ -444,6 +447,11 @@ class PublicationOrchestratorTest extends TestCase
             'status' => PublicationMedia::STATUS_APPROVED,
             'approved_by' => $user->getKey(),
             'approved_at' => '2026-10-04 10:00:00',
+            'preflight_status' => PublicationMedia::PREFLIGHT_PASSED,
+            'preflight_checked_at' => now(),
+            'preflight_final_url' => 'https://cdn.example.com/approved.jpg',
+            'preflight_content_type' => 'image/jpeg',
+            'preflight_content_length' => 1024,
         ]);
 
         return [$user, $brand, $draft, $publication, $connection];

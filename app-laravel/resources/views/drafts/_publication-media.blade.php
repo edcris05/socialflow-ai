@@ -30,6 +30,26 @@
                         <p class="text-red-800">Motivo: {{ $publicationMedia->rejection_reason }}</p>
                     @endif
                 @endif
+                @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED)
+                    <div class="mt-3 rounded-lg border border-sky-200 bg-white p-3">
+                        <p><span class="font-semibold">Estado URL pública:</span> {{ $publicationMedia->preflightStatusLabel() }}</p>
+                        @if ($publicationMedia->preflight_checked_at)
+                            <p><span class="font-semibold">Última comprobación:</span> {{ $publicationMedia->preflight_checked_at->format('d/m/Y H:i:s') }}</p>
+                        @endif
+                        @if ($publicationMedia->preflight_content_type)
+                            <p><span class="font-semibold">Content-Type:</span> {{ $publicationMedia->preflight_content_type }}</p>
+                        @endif
+                        @if ($publicationMedia->preflight_content_length !== null)
+                            <p><span class="font-semibold">Tamaño remoto:</span> {{ number_format($publicationMedia->preflight_content_length / 1024, 0, ',', '.') }} KB</p>
+                        @endif
+                        @if ($publicationMedia->preflight_final_url)
+                            <p class="break-all"><span class="font-semibold">URL verificada:</span> {{ $publicationMedia->preflight_final_url }}</p>
+                        @endif
+                        @if ($publicationMedia->preflight_error_message)
+                            <p class="font-semibold text-red-800">{{ $publicationMedia->preflight_error_message }}</p>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -48,6 +68,12 @@
         </form>
 
         <div class="mt-5 flex flex-wrap gap-3">
+            @if ($publicationMedia->status === \App\Models\PublicationMedia::STATUS_APPROVED && filled($publicationMedia->public_url))
+                <form action="{{ route('marcas.borradores.media.preflight.store', [$brand, $draft, $publicationMedia]) }}" method="POST">
+                    @csrf
+                    <button class="rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white">Verificar imagen pública</button>
+                </form>
+            @endif
             <form action="{{ route('marcas.borradores.media.approve', [$brand, $draft, $publicationMedia]) }}" method="POST">
                 @csrf
                 @method('PATCH')

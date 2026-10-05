@@ -20,16 +20,16 @@ final class PublicMediaUrl
         $scheme = Str::lower((string) ($parts['scheme'] ?? ''));
         $host = Str::lower(trim((string) ($parts['host'] ?? ''), '[]'));
 
-        if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
+        if ($scheme !== 'https' || $host === '') {
+            return false;
+        }
+
+        if (isset($parts['port']) && $parts['port'] !== 443) {
             return false;
         }
 
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            return filter_var(
-                $host,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
-            ) !== false;
+            return false;
         }
 
         if (! str_contains($host, '.')) {

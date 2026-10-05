@@ -18,11 +18,25 @@ class ScheduledPublicationController extends Controller
     {
         $brand = $this->ownedBrand($brand);
         $publications = $brand->scheduledPublications()
-            ->with(['draft', 'scheduledBy', 'cancelledBy'])
+            ->whereHas('draft', fn ($query) => $query
+                ->where('brand_id', $brand->getKey()))
+            ->with([
+                'draft' => fn ($query) => $query->with([
+                    'currentPublicationMedia' => fn ($mediaQuery) => $mediaQuery
+                        ->where('brand_id', $brand->getKey()),
+                ]),
+                'scheduledBy',
+                'cancelledBy',
+                'publicationAttempts' => fn ($query) => $query
+                    ->where('provider', 'meta')
+                    ->latest('id'),
+            ])
             ->orderByRaw("CASE WHEN status = 'scheduled' AND scheduled_for <= ? THEN 0 WHEN status = 'scheduled' THEN 1 ELSE 2 END", [now()])
             ->orderBy('scheduled_for')
             ->orderByDesc('created_at')
             ->paginate(20);
+
+        $brand->load('metaConnection');
 
         return view('scheduled-publications.index', compact('brand', 'publications'));
     }

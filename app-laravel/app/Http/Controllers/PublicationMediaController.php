@@ -108,6 +108,7 @@ class PublicationMediaController extends Controller
             'rejected_by' => null,
             'rejected_at' => null,
             'rejection_reason' => null,
+            ...PublicationMedia::resetPreflightAttributes(),
         ]);
 
         return $this->redirectToDraft($brand, $draft, 'URL pública actualizada. La imagen requiere una nueva aprobación.');
@@ -201,7 +202,7 @@ class PublicationMediaController extends Controller
     {
         return static function (string $attribute, mixed $value, Closure $fail): void {
             if (! PublicMediaUrl::isValid(is_string($value) ? $value : null)) {
-                $fail('La URL pública debe usar HTTP(S) y no puede apuntar a localhost, DDEV ni redes privadas.');
+                $fail('La URL pública debe usar HTTPS, puerto 443, sin credenciales ni destinos locales o internos.');
             }
         };
     }

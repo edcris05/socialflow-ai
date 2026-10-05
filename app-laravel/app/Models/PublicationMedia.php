@@ -28,6 +28,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'rejected_at',
     'rejection_reason',
     'superseded_at',
+    'preflight_status',
+    'preflight_checked_at',
+    'preflight_final_url',
+    'preflight_content_type',
+    'preflight_content_length',
+    'preflight_error_code',
+    'preflight_error_message',
 ])]
 class PublicationMedia extends Model
 {
@@ -40,6 +47,12 @@ class PublicationMedia extends Model
     public const STATUS_REJECTED = 'rejected';
 
     public const TYPE_IMAGE = 'image';
+
+    public const PREFLIGHT_NOT_CHECKED = 'not_checked';
+
+    public const PREFLIGHT_PASSED = 'passed';
+
+    public const PREFLIGHT_FAILED = 'failed';
 
     protected $table = 'publication_media';
 
@@ -83,7 +96,40 @@ class PublicationMedia extends Model
         return $this->status === self::STATUS_APPROVED
             && $this->superseded_at === null
             && $this->hasValidImage()
-            && $this->hasValidPublicUrl();
+            && $this->hasValidPublicUrl()
+            && $this->hasFreshPreflight();
+    }
+
+    public function hasFreshPreflight(): bool
+    {
+        $freshMinutes = max(1, (int) config('services.publication_media.preflight_fresh_minutes', 15));
+
+        return $this->preflight_status === self::PREFLIGHT_PASSED
+            && $this->preflight_checked_at !== null
+            && $this->preflight_checked_at->gte(now()->subMinutes($freshMinutes));
+    }
+
+    public function preflightStatusLabel(): string
+    {
+        return match ($this->preflight_status) {
+            self::PREFLIGHT_PASSED => 'VERIFICADA',
+            self::PREFLIGHT_FAILED => 'ERROR DE PREFLIGHT',
+            default => 'SIN VERIFICAR',
+        };
+    }
+
+    /** @return array<string, null> */
+    public static function resetPreflightAttributes(): array
+    {
+        return [
+            'preflight_status' => self::PREFLIGHT_NOT_CHECKED,
+            'preflight_checked_at' => null,
+            'preflight_final_url' => null,
+            'preflight_content_type' => null,
+            'preflight_content_length' => null,
+            'preflight_error_code' => null,
+            'preflight_error_message' => null,
+        ];
     }
 
     public function statusLabel(): string
@@ -104,6 +150,8 @@ class PublicationMedia extends Model
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
             'superseded_at' => 'datetime',
+            'preflight_checked_at' => 'datetime',
+            'preflight_content_length' => 'integer',
         ];
     }
 }
