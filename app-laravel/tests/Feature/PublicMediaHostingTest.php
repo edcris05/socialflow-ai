@@ -17,7 +17,10 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\TestCase;
 
 class PublicMediaHostingTest extends TestCase
@@ -79,6 +82,203 @@ class PublicMediaHostingTest extends TestCase
         $this->assertNull($media->preflight_checked_at);
         $this->assertFalse($media->isPublishable());
         Http::assertNothingSent();
+    }
+
+    public function test_r2_disk_uses_streamed_storage_and_the_public_base_url_without_object_acl(): void
+    {
+        $publicBaseUrl = 'https://pub-test.r2.dev';
+        $apiEndpoint = 'https://account-id.r2.cloudflarestorage.com';
+        $this->configureFakeR2($publicBaseUrl, $apiEndpoint);
+        [$user, $brand, $draft, $media] = $this->approvedMedia();
+        $content = "\xFF\xD8\xFFr2-jpeg";
+        Storage::disk('local')->put($media->storage_path, $content);
+
+        $this->actingAs($user)
+            ->post(route('marcas.borradores.media.hosting.store', [$brand, $draft, $media]))
+            ->assertRedirect(route('marcas.borradores.edit', [$brand, $draft]));
+
+        $hosting = PublicMediaHosting::query()->sole();
+        $this->assertSame(PublicMediaHosting::STATUS_HOSTED, $hosting->status);
+        $this->assertSame('s3', $hosting->provider);
+        $this->assertSame('r2', $hosting->disk);
+        $this->assertStringStartsWith($publicBaseUrl.'/publication-media/', $hosting->public_url);
+        $this->assertStringNotContainsString('r2.cloudflarestorage.com', $hosting->public_url);
+        $this->assertSame(hash('sha256', $content), $hosting->checksum_sha256);
+        $this->assertStringNotContainsString($media->original_filename, $hosting->object_key);
+        $this->assertSame('private', Storage::disk('r2')->getVisibility($hosting->object_key));
+        Storage::disk('local')->assertExists($media->storage_path);
+        Storage::disk('r2')->assertExists($hosting->object_key);
+        Http::assertNothingSent();
+    }
+
+    public function test_generic_s3_compatible_disk_may_share_endpoint_and_public_url_host(): void
+    {
+        $publicBaseUrl = 'https://storage.example.com/public';
+        Config::set('filesystems.public_media_disk', 's3-compatible');
+        Config::set('filesystems.disks.s3-compatible', [
+            'driver' => 's3',
+            'key' => 'test-access-key',
+            'secret' => 'test-secret-key',
+            'region' => 'test-region',
+            'bucket' => 'test-public-media',
+            'url' => $publicBaseUrl,
+            'endpoint' => 'https://storage.example.com',
+            'use_path_style_endpoint' => false,
+            'throw' => false,
+            'report' => false,
+        ]);
+        Storage::fake('s3-compatible', [
+            'url' => $publicBaseUrl,
+            'visibility' => 'private',
+        ]);
+        [$user, $brand, $draft, $media] = $this->approvedMedia();
+        Storage::disk('local')->put($media->storage_path, "\xFF\xD8\xFFjpeg");
+
+        $this->actingAs($user)
+            ->post(route('marcas.borradores.media.hosting.store', [$brand, $draft, $media]))
+            ->assertRedirect(route('marcas.borradores.edit', [$brand, $draft]));
+
+        $hosting = PublicMediaHosting::query()->sole();
+        $this->assertSame(PublicMediaHosting::STATUS_HOSTED, $hosting->status);
+        $this->assertSame('s3', $hosting->provider);
+        $this->assertSame('s3-compatible', $hosting->disk);
+        $this->assertStringStartsWith($publicBaseUrl.'/publication-media/', $hosting->public_url);
+        Storage::disk('s3-compatible')->assertExists($hosting->object_key);
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('missingR2Configuration')]
+    public function test_incomplete_r2_configuration_fails_before_storage_access(string $missingKey): void
+    {
+        $this->configureFakeR2();
+        Config::set('filesystems.disks.r2.'.$missingKey, null);
+        [$user, $brand, $draft, $media] = $this->approvedMedia();
+        Storage::disk('local')->put($media->storage_path, "\xFF\xD8\xFFjpeg");
+
+        $this->actingAs($user)
+            ->post(route('marcas.borradores.media.hosting.store', [$brand, $draft, $media]))
+            ->assertSessionHas('error', 'El almacenamiento público no está configurado.');
+
+        $hosting = PublicMediaHosting::query()->sole();
+        $this->assertSame(PublicMediaHosting::STATUS_FAILED, $hosting->status);
+        $this->assertSame('PUBLIC_MEDIA_DISK_NOT_CONFIGURED', $hosting->last_error_code);
+        $this->assertNull($hosting->hosted_at);
+        $this->assertNull($hosting->public_url);
+        $this->assertSame('El almacenamiento público no está configurado.', $hosting->last_error_message);
+        Storage::disk('local')->assertExists($media->storage_path);
+        $this->assertSame([], Storage::disk('r2')->allFiles());
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{string}> */
+    public static function missingR2Configuration(): array
+    {
+        return [
+            'access key' => ['key'],
+            'secret key' => ['secret'],
+            'region' => ['region'],
+            'bucket' => ['bucket'],
+            'api endpoint' => ['endpoint'],
+            'public base URL' => ['url'],
+        ];
+    }
+
+    #[DataProvider('invalidR2Urls')]
+    public function test_invalid_r2_endpoint_or_public_url_fails_without_upload(
+        string $publicBaseUrl,
+        string $apiEndpoint,
+        string $expectedCode,
+    ): void {
+        $this->configureFakeR2($publicBaseUrl, $apiEndpoint);
+        [$user, $brand, $draft, $media] = $this->approvedMedia();
+        Storage::disk('local')->put($media->storage_path, "\xFF\xD8\xFFjpeg");
+
+        $this->actingAs($user)
+            ->post(route('marcas.borradores.media.hosting.store', [$brand, $draft, $media]))
+            ->assertRedirect();
+
+        $hosting = PublicMediaHosting::query()->sole();
+        $this->assertSame(PublicMediaHosting::STATUS_FAILED, $hosting->status);
+        $this->assertSame($expectedCode, $hosting->last_error_code);
+        $this->assertNull($hosting->public_url);
+        $this->assertSame([], Storage::disk('r2')->allFiles());
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{string, string, string}> */
+    public static function invalidR2Urls(): array
+    {
+        return [
+            'public URL is HTTP' => [
+                'http://pub-test.r2.dev',
+                'https://account-id.r2.cloudflarestorage.com',
+                'PUBLIC_MEDIA_URL_INVALID',
+            ],
+            'public URL embeds credentials' => [
+                'https://user:password@pub-test.r2.dev',
+                'https://account-id.r2.cloudflarestorage.com',
+                'PUBLIC_MEDIA_URL_INVALID',
+            ],
+            'public URL contains a query secret' => [
+                'https://pub-test.r2.dev?signature=test-value',
+                'https://account-id.r2.cloudflarestorage.com',
+                'PUBLIC_MEDIA_URL_INVALID',
+            ],
+            'API endpoint is used as public URL' => [
+                'https://account-id.r2.cloudflarestorage.com',
+                'https://account-id.r2.cloudflarestorage.com',
+                'PUBLIC_MEDIA_URL_INVALID',
+            ],
+            'API endpoint is not HTTPS' => [
+                'https://pub-test.r2.dev',
+                'http://account-id.r2.cloudflarestorage.com',
+                'PUBLIC_MEDIA_STORAGE_CONFIG_INVALID',
+            ],
+        ];
+    }
+
+    #[DataProvider('storageExceptionStages')]
+    public function test_r2_storage_exceptions_are_sanitized_and_persist_failed_state(string $stage): void
+    {
+        $this->configureFakeR2();
+        [$user, $brand, $draft, $media] = $this->approvedMedia();
+        Storage::disk('local')->put($media->storage_path, "\xFF\xD8\xFFjpeg");
+        $sourceDisk = Storage::disk('local');
+        $publicDisk = Mockery::mock();
+
+        if ($stage === 'upload') {
+            $publicDisk->shouldReceive('put')
+                ->once()
+                ->andThrow(new RuntimeException('test-only credential must not persist'));
+        } else {
+            $publicDisk->shouldReceive('put')->once()->andReturn(true);
+            $publicDisk->shouldReceive('url')
+                ->once()
+                ->andThrow(new RuntimeException('test-only credential must not persist'));
+        }
+
+        Storage::shouldReceive('disk')->with('local')->andReturn($sourceDisk);
+        Storage::shouldReceive('disk')->with('r2')->andReturn($publicDisk);
+
+        $this->actingAs($user)
+            ->post(route('marcas.borradores.media.hosting.store', [$brand, $draft, $media]))
+            ->assertSessionHas('error', 'No se pudo preparar la copia pública de la imagen.');
+
+        $hosting = PublicMediaHosting::query()->sole();
+        $this->assertSame(PublicMediaHosting::STATUS_FAILED, $hosting->status);
+        $this->assertSame('PUBLIC_MEDIA_STORAGE_FAILED', $hosting->last_error_code);
+        $this->assertNull($hosting->public_url);
+        $this->assertStringNotContainsString('credential', Str::lower($hosting->toJson()));
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{string}> */
+    public static function storageExceptionStages(): array
+    {
+        return [
+            'upload exception' => ['upload'],
+            'URL generation exception' => ['url'],
+        ];
     }
 
     public function test_public_disk_must_be_distinct_from_private_source_disk(): void
@@ -409,6 +609,29 @@ class PublicMediaHostingTest extends TestCase
             'size_bytes' => 18,
             'checksum_sha256' => hash('sha256', 'managed'),
             'hosted_at' => now(),
+        ]);
+    }
+
+    private function configureFakeR2(
+        string $publicBaseUrl = 'https://pub-test.r2.dev',
+        string $apiEndpoint = 'https://account-id.r2.cloudflarestorage.com',
+    ): void {
+        Config::set('filesystems.public_media_disk', 'r2');
+        Config::set('filesystems.disks.r2', [
+            'driver' => 's3',
+            'key' => 'test-access-key',
+            'secret' => 'test-secret-key',
+            'region' => 'auto',
+            'bucket' => 'test-public-media',
+            'url' => $publicBaseUrl,
+            'endpoint' => $apiEndpoint,
+            'use_path_style_endpoint' => false,
+            'throw' => false,
+            'report' => false,
+        ]);
+        Storage::fake('r2', [
+            'url' => $publicBaseUrl,
+            'visibility' => 'private',
         ]);
     }
 }

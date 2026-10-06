@@ -37,6 +37,16 @@ class LaravelFilesystemPublicMediaStorage implements PublicMediaStorageInterface
             );
         }
 
+        $constraints = config('filesystems.public_media_disk_constraints.'.$diskName, []);
+        $configurationFailure = $this->configurationFailure(
+            $diskConfig,
+            is_array($constraints) ? $constraints : [],
+        );
+
+        if ($configurationFailure !== null) {
+            return $configurationFailure;
+        }
+
         try {
             $sourceDisk = Storage::disk($media->storage_disk);
 
@@ -80,7 +90,6 @@ class LaravelFilesystemPublicMediaStorage implements PublicMediaStorageInterface
 
             try {
                 $stored = $publicDisk->put($objectKey, $copyStream, [
-                    'visibility' => 'public',
                     'ContentType' => $media->mime_type,
                 ]);
             } finally {
@@ -122,6 +131,72 @@ class LaravelFilesystemPublicMediaStorage implements PublicMediaStorageInterface
                 'No se pudo preparar la copia pública de la imagen.',
             );
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $diskConfig
+     * @param  array<string, mixed>  $constraints
+     */
+    private function configurationFailure(array $diskConfig, array $constraints): ?PublicMediaStorageResult
+    {
+        foreach ($constraints['required'] ?? [] as $requiredKey) {
+            if (blank($diskConfig[$requiredKey] ?? null)) {
+                return $this->failure(
+                    'PUBLIC_MEDIA_DISK_NOT_CONFIGURED',
+                    'El almacenamiento público no está configurado.',
+                );
+            }
+        }
+
+        $publicUrl = (string) ($diskConfig['url'] ?? '');
+
+        if (! PublicMediaUrl::isValid($publicUrl) || $this->hasQueryOrFragment($publicUrl)) {
+            return $this->failure(
+                'PUBLIC_MEDIA_URL_INVALID',
+                'El almacenamiento no generó una URL pública HTTPS válida.',
+            );
+        }
+
+        $endpoint = $diskConfig['endpoint'] ?? null;
+
+        if (filled($endpoint)
+            && (! PublicMediaUrl::isValid((string) $endpoint) || $this->hasQueryOrFragment((string) $endpoint))) {
+            return $this->failure(
+                'PUBLIC_MEDIA_STORAGE_CONFIG_INVALID',
+                'La configuración del almacenamiento público no es válida.',
+            );
+        }
+
+        foreach ($constraints['distinct_host_pairs'] ?? [] as $pair) {
+            if (! is_array($pair) || count($pair) !== 2) {
+                continue;
+            }
+
+            [$firstKey, $secondKey] = array_values($pair);
+            $firstUrl = (string) ($diskConfig[$firstKey] ?? '');
+            $secondUrl = (string) ($diskConfig[$secondKey] ?? '');
+
+            if ($this->host($firstUrl) === $this->host($secondUrl)) {
+                return $this->failure(
+                    'PUBLIC_MEDIA_URL_INVALID',
+                    'El almacenamiento no generó una URL pública HTTPS válida.',
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private function hasQueryOrFragment(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        return is_array($parts) && (isset($parts['query']) || isset($parts['fragment']));
+    }
+
+    private function host(string $url): string
+    {
+        return Str::lower((string) parse_url($url, PHP_URL_HOST));
     }
 
     private function objectKey(PublicationMedia $media): string
