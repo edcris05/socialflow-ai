@@ -38,6 +38,17 @@ class PublicationAttempt extends Model
 
     public const STATUS_OUTCOME_UNKNOWN = 'outcome_unknown';
 
+    /** @return list<string> */
+    public static function reentryBlockingStatuses(): array
+    {
+        return [
+            self::STATUS_PUBLISHING,
+            self::STATUS_PUBLISHED,
+            self::STATUS_FAILED,
+            self::STATUS_OUTCOME_UNKNOWN,
+        ];
+    }
+
     public function scheduledPublication(): BelongsTo
     {
         return $this->belongsTo(ScheduledPublication::class);

@@ -36,6 +36,12 @@ return [
         'publishing_enabled' => filter_var(env('META_PUBLISHING_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
+    'scheduled_publishing' => [
+        'enabled' => filter_var(env('SCHEDULED_PUBLISHING_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'default_limit' => 25,
+        'max_limit' => 100,
+    ],
+
     'publication_media' => [
         'allowed_hosts' => array_values(array_filter(array_map(
             static fn (string $host): string => strtolower(trim($host)),

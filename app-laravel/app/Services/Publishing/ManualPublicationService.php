@@ -127,7 +127,11 @@ class ManualPublicationService
     private function existingResult(PublicationAttempt $attempt): PublicationResult
     {
         if ($attempt->status === PublicationAttempt::STATUS_PUBLISHED) {
-            return PublicationResult::succeeded($attempt->external_container_id, $attempt->external_media_id);
+            return PublicationResult::succeeded(
+                $attempt->external_container_id,
+                $attempt->external_media_id,
+                alreadyPublished: true,
+            );
         }
 
         if ($attempt->status === PublicationAttempt::STATUS_PUBLISHING) {

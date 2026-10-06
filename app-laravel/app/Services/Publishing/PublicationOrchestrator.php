@@ -24,6 +24,21 @@ class PublicationOrchestrator
     ): PublicationResult {
         $publication = $this->ownedPublication($actor, $scheduledPublication);
 
+        return $this->publishPublication($actor, $publication);
+    }
+
+    public function publishAutomatically(ScheduledPublication $scheduledPublication): PublicationResult
+    {
+        $publication = ScheduledPublication::query()->findOrFail($scheduledPublication->getKey());
+
+        return $this->publishPublication(null, $publication);
+    }
+
+    private function publishPublication(
+        ?User $actor,
+        ScheduledPublication $publication,
+    ): PublicationResult {
+
         if (! config('services.meta.publishing_enabled', false)) {
             return PublicationResult::failed(
                 'PUBLISHING_DISABLED',
@@ -32,9 +47,14 @@ class PublicationOrchestrator
         }
 
         $claim = DB::transaction(function () use ($actor, $publication): array {
-            $lockedPublication = ScheduledPublication::query()
-                ->whereKey($publication->getKey())
-                ->whereHas('brand.users', fn ($query) => $query->whereKey($actor->getKey()))
+            $publicationQuery = ScheduledPublication::query()
+                ->whereKey($publication->getKey());
+
+            if ($actor !== null) {
+                $publicationQuery->whereHas('brand.users', fn ($query) => $query->whereKey($actor->getKey()));
+            }
+
+            $lockedPublication = $publicationQuery
                 ->lockForUpdate()
                 ->firstOrFail();
             $lockedDraft = Draft::query()
@@ -78,7 +98,7 @@ class PublicationOrchestrator
             $attempt = PublicationAttempt::create([
                 'scheduled_publication_id' => $lockedPublication->getKey(),
                 'meta_connection_id' => $connection->getKey(),
-                'initiated_by' => $actor->getKey(),
+                'initiated_by' => $actor?->getKey(),
                 'provider' => self::PROVIDER,
                 'status' => PublicationAttempt::STATUS_PUBLISHING,
                 'attempt_count' => 1,
@@ -250,6 +270,7 @@ class PublicationOrchestrator
             return PublicationResult::succeeded(
                 externalContainerId: $attempt->external_container_id,
                 externalMediaId: $attempt->external_media_id,
+                alreadyPublished: true,
             );
         }
 

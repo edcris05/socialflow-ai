@@ -95,6 +95,8 @@ class PublicationOrchestratorTest extends TestCase
 
         $this->assertTrue($first->successful);
         $this->assertTrue($second->successful);
+        $this->assertFalse($first->alreadyPublished);
+        $this->assertTrue($second->alreadyPublished);
         $this->assertSame($first->externalContainerId, $second->externalContainerId);
         $this->assertSame($first->externalMediaId, $second->externalMediaId);
         $this->assertSame(1, PublicationAttempt::query()->count());
