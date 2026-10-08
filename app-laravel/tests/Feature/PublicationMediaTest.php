@@ -249,6 +249,8 @@ class PublicationMediaTest extends TestCase
 
     public function test_approved_draft_ui_shows_media_status_and_controls(): void
     {
+        config()->set('filesystems.public_media_disk', null);
+
         [$user, $brand, $draft] = $this->approvedDraft();
 
         $this->actingAs($user)
