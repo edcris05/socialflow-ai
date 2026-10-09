@@ -3,6 +3,8 @@
 namespace App\Services\Publishing;
 
 use App\Contracts\MetaPublisherInterface;
+use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -36,19 +38,27 @@ class PublicationOrchestrator
     ): PublicationResult {
         $publication = $this->ownedPublication($actor, $scheduledPublication);
 
-        return $this->publishPublication($actor, $publication);
+        return $this->publishPublication($actor, $publication, automatic: false);
     }
 
     public function publishAutomatically(ScheduledPublication $scheduledPublication): PublicationResult
     {
+        if (! config('services.scheduled_publishing.enabled', false)) {
+            return PublicationResult::failed(
+                'SCHEDULED_PUBLISHING_DISABLED',
+                'La publicación programada automática está deshabilitada.',
+            );
+        }
+
         $publication = ScheduledPublication::query()->findOrFail($scheduledPublication->getKey());
 
-        return $this->publishPublication(null, $publication);
+        return $this->publishPublication(null, $publication, automatic: true);
     }
 
     private function publishPublication(
         ?User $actor,
         ScheduledPublication $publication,
+        bool $automatic,
     ): PublicationResult {
 
         if (! config('services.meta.publishing_enabled', false)) {
@@ -58,7 +68,7 @@ class PublicationOrchestrator
             );
         }
 
-        $claim = DB::transaction(function () use ($actor, $publication): array {
+        $claim = DB::transaction(function () use ($actor, $publication, $automatic): array {
             $publicationQuery = ScheduledPublication::query()
                 ->whereKey($publication->getKey());
 
@@ -69,6 +79,28 @@ class PublicationOrchestrator
             $lockedPublication = $publicationQuery
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if ($automatic) {
+                $lockedBrand = Brand::query()
+                    ->whereKey($lockedPublication->brand_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $autopublishingSetting = BrandAutopublishingSetting::query()
+                    ->where('brand_id', $lockedBrand->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $autopublishingSetting?->allowsAutomaticPublishing()) {
+                    return [
+                        'attempt' => null,
+                        'result' => PublicationResult::failed(
+                            'BRAND_AUTOPUBLISH_DISABLED',
+                            'La autopublicación está deshabilitada para esta marca.',
+                        ),
+                    ];
+                }
+            }
+
             $lockedDraft = Draft::query()
                 ->whereKey($lockedPublication->draft_id)
                 ->lockForUpdate()

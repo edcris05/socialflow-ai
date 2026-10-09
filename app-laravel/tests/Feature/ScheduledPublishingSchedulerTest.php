@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\MetaPublisherInterface;
 use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -139,6 +140,9 @@ class ScheduledPublishingSchedulerTest extends TestCase
         $user = User::factory()->create();
         $brand = Brand::factory()->create();
         $user->brands()->attach($brand, ['role' => 'owner']);
+        BrandAutopublishingSetting::factory()->enabled()->for($brand)->create([
+            'enabled_by' => $user->getKey(),
+        ]);
         $draft = Draft::create([
             'brand_id' => $brand->getKey(),
             'user_id' => $user->getKey(),

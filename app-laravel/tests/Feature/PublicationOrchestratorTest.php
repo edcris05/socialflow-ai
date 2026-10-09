@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\MetaPublisherInterface;
 use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -460,6 +461,77 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame('PUBLISHING_DISABLED', $result->errorCode);
         $this->assertSame(0, PublicationAttempt::query()->count());
         Http::assertNothingSent();
+    }
+
+    #[DataProvider('disabledAutomaticGateStates')]
+    public function test_automatic_publish_requires_both_global_gates_before_claim(
+        bool $metaEnabled,
+        bool $scheduledEnabled,
+        string $expectedCode,
+    ): void {
+        Config::set('services.meta.publishing_enabled', $metaEnabled);
+        Config::set('services.scheduled_publishing.enabled', $scheduledEnabled);
+        Http::preventStrayRequests();
+        [$user, $brand, , $publication] = $this->publication();
+        BrandAutopublishingSetting::factory()->enabled()->for($brand)->create([
+            'enabled_by' => $user->getKey(),
+        ]);
+
+        $result = $this->orchestrator()->publishAutomatically($publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame($expectedCode, $result->errorCode);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{bool, bool, string}> */
+    public static function disabledAutomaticGateStates(): array
+    {
+        return [
+            'scheduled gate disabled' => [true, false, 'SCHEDULED_PUBLISHING_DISABLED'],
+            'Meta gate disabled' => [false, true, 'PUBLISHING_DISABLED'],
+            'both gates disabled' => [false, false, 'SCHEDULED_PUBLISHING_DISABLED'],
+        ];
+    }
+
+    #[DataProvider('invalidAutomaticBrandSettingStates')]
+    public function test_automatic_publish_fails_closed_for_invalid_brand_setting(string $scenario): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Config::set('services.scheduled_publishing.enabled', true);
+        Http::preventStrayRequests();
+        [$user, $brand, , $publication] = $this->publication();
+
+        if ($scenario === 'disabled') {
+            BrandAutopublishingSetting::factory()->for($brand)->create([
+                'disabled_by' => $user->getKey(),
+                'disabled_at' => now(),
+            ]);
+        } elseif ($scenario === 'incomplete') {
+            BrandAutopublishingSetting::factory()->for($brand)->create([
+                'enabled' => true,
+                'enabled_by' => null,
+                'enabled_at' => null,
+            ]);
+        }
+
+        $result = $this->orchestrator()->publishAutomatically($publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame('BRAND_AUTOPUBLISH_DISABLED', $result->errorCode);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{string}> */
+    public static function invalidAutomaticBrandSettingStates(): array
+    {
+        return [
+            'missing setting' => ['missing'],
+            'disabled setting' => ['disabled'],
+            'incomplete enabled setting' => ['incomplete'],
+        ];
     }
 
     public function test_managed_hosting_never_bypasses_required_preflight(): void

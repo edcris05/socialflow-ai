@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BrandAutopublishingSettingController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\DraftController;
@@ -42,6 +43,8 @@ Route::middleware('auth')->group(function () {
         ->parameters(['marcas' => 'brand']);
 
     Route::prefix('marcas/{brand}')->name('marcas.')->group(function () {
+        Route::post('autopublicacion', [BrandAutopublishingSettingController::class, 'store'])->name('autopublicacion.store');
+        Route::delete('autopublicacion', [BrandAutopublishingSettingController::class, 'destroy'])->name('autopublicacion.destroy');
         Route::get('estrategia', [StrategyController::class, 'index'])->name('estrategia.index');
         Route::post('estrategia/generar', [StrategyController::class, 'store'])->name('estrategia.store');
         Route::post('estrategia/{strategyRun}/sugerencias/{suggestion}/borrador', [StrategyController::class, 'createDraft'])

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\PublicHostResolverInterface;
 use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -189,6 +190,28 @@ class ManualPublicationTest extends TestCase
         $this->assertSame('container_123', $attempt->external_container_id);
         $this->assertSame('media_123', $attempt->external_media_id);
         $this->assertSame(1, $attempt->attempt_count);
+    }
+
+    public function test_manual_publish_remains_available_when_brand_autopublishing_is_disabled(): void
+    {
+        Http::fake([
+            self::MEDIA_URL => Http::response("\xFF\xD8\xFFjpeg", 200, ['Content-Type' => 'image/jpeg']),
+            self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response(['status_code' => 'FINISHED']),
+            self::PUBLISH_URL => Http::response(['id' => 'media_123']),
+        ]);
+        [$user, $brand, , $publication] = $this->publication();
+        BrandAutopublishingSetting::factory()->for($brand)->create([
+            'disabled_by' => $user->getKey(),
+            'disabled_at' => now(),
+        ]);
+
+        $this->publish($user, $brand, $publication)->assertSessionHas('status');
+
+        $attempt = PublicationAttempt::query()->sole();
+        $this->assertSame(PublicationAttempt::STATUS_PUBLISHED, $attempt->status);
+        $this->assertSame('media_123', $attempt->external_media_id);
+        Http::assertSentCount(4);
     }
 
     public function test_second_click_after_published_is_idempotent_with_zero_extra_http(): void

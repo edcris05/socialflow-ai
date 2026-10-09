@@ -13,7 +13,9 @@ class ScheduledPublishingProcessor
 
     public function process(ScheduledPublication $scheduledPublication): ScheduledPublishingResult
     {
-        $publication = ScheduledPublication::query()->findOrFail($scheduledPublication->getKey());
+        $publication = ScheduledPublication::query()
+            ->with('brand.autopublishingSetting')
+            ->findOrFail($scheduledPublication->getKey());
 
         if ($publication->status !== ScheduledPublication::STATUS_SCHEDULED) {
             return ScheduledPublishingResult::skipped('SCHEDULE_CANCELLED', 'La programación está cancelada.');
@@ -33,6 +35,13 @@ class ScheduledPublishingProcessor
             return ScheduledPublishingResult::blocked(
                 'SCHEDULED_PUBLISHING_DISABLED',
                 'La publicación programada automática está deshabilitada.',
+            );
+        }
+
+        if (! $publication->brand->autopublishingEnabled()) {
+            return ScheduledPublishingResult::blocked(
+                'BRAND_AUTOPUBLISH_DISABLED',
+                'La autopublicación está deshabilitada para esta marca.',
             );
         }
 

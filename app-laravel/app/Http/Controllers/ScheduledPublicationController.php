@@ -37,7 +37,7 @@ class ScheduledPublicationController extends Controller
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        $brand->load('metaConnection');
+        $brand->load(['metaConnection', 'autopublishingSetting']);
 
         return view('scheduled-publications.index', compact('brand', 'publications'));
     }

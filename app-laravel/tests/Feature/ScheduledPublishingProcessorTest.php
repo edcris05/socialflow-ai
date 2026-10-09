@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\MetaPublisherInterface;
 use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -11,6 +12,7 @@ use App\Models\PublicationMedia;
 use App\Models\PublicMediaHosting;
 use App\Models\ScheduledPublication;
 use App\Models\User;
+use App\Services\Publishing\DueScheduledPublicationFinder;
 use App\Services\Publishing\PublicationResult;
 use App\Services\Publishing\ScheduledPublishingProcessor;
 use App\Services\Publishing\ScheduledPublishingResult;
@@ -141,6 +143,42 @@ class ScheduledPublishingProcessorTest extends TestCase
             'Meta gate disabled' => [false, true, 'PUBLISHING_DISABLED'],
             'both gates disabled' => [false, false, 'SCHEDULED_PUBLISHING_DISABLED'],
         ];
+    }
+
+    public function test_disabled_brand_is_blocked_before_publisher_call(): void
+    {
+        $fake = $this->fakePublisher();
+        [, $brand, , $publication] = $this->eligiblePublication();
+        $brand->autopublishingSetting->update(['enabled' => false]);
+
+        $result = $this->processor()->process($publication);
+
+        $this->assertSame(ScheduledPublishingResult::STATUS_BLOCKED, $result->status);
+        $this->assertSame('BRAND_AUTOPUBLISH_DISABLED', $result->code);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        $this->assertSame(0, $fake->createCalls);
+        $this->assertSame(0, $fake->statusCalls);
+        $this->assertSame(0, $fake->publishCalls);
+        Http::assertNothingSent();
+    }
+
+    public function test_candidate_selected_while_enabled_is_blocked_if_brand_is_disabled_before_processing(): void
+    {
+        $fake = $this->fakePublisher();
+        [$user, $brand, , $publication] = $this->eligiblePublication();
+        $candidate = $this->app->make(DueScheduledPublicationFinder::class)->find(100)->sole();
+        $brand->autopublishingSetting->disable($user);
+
+        $result = $this->processor()->process($candidate);
+
+        $this->assertSame($publication->getKey(), $candidate->getKey());
+        $this->assertSame(ScheduledPublishingResult::STATUS_BLOCKED, $result->status);
+        $this->assertSame('BRAND_AUTOPUBLISH_DISABLED', $result->code);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        $this->assertSame(0, $fake->createCalls);
+        $this->assertSame(0, $fake->statusCalls);
+        $this->assertSame(0, $fake->publishCalls);
+        Http::assertNothingSent();
     }
 
     public function test_due_eligible_schedule_publishes_once_and_persists_system_attempt(): void
@@ -305,6 +343,9 @@ class ScheduledPublishingProcessorTest extends TestCase
         $user = User::factory()->create();
         $brand = Brand::factory()->create();
         $user->brands()->attach($brand, ['role' => 'owner']);
+        BrandAutopublishingSetting::factory()->enabled()->for($brand)->create([
+            'enabled_by' => $user->getKey(),
+        ]);
         $draft = Draft::create([
             'brand_id' => $brand->getKey(),
             'user_id' => $user->getKey(),

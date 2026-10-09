@@ -60,6 +60,16 @@ class Brand extends Model
         return $this->hasOne(MetaConnection::class);
     }
 
+    public function autopublishingSetting(): HasOne
+    {
+        return $this->hasOne(BrandAutopublishingSetting::class);
+    }
+
+    public function autopublishingEnabled(): bool
+    {
+        return $this->autopublishingSetting?->allowsAutomaticPublishing() ?? false;
+    }
+
     /**
      * Get the attributes that should be cast.
      *

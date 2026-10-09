@@ -1,9 +1,16 @@
 <x-layouts.app title="Programación de {{ $brand->name }} · SocialFlow AI">
+    @php
+        $autopublishingEnabled = $brand->autopublishingEnabled();
+    @endphp
+
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">Programación</p>
             <h1 class="mt-2 text-3xl font-semibold">{{ $brand->name }}</h1>
-            <p class="mt-3 max-w-2xl text-sm text-slate-600">Cola interna de publicaciones futuras. Los elementos listos todavía no se publican automáticamente.</p>
+            <p class="mt-3 max-w-2xl text-sm text-slate-600">READY describe la preparación del schedule. La elegibilidad automática depende además de la política de la marca y de los controles globales.</p>
+            <span class="mt-3 inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold {{ $autopublishingEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700' }}">
+                {{ $autopublishingEnabled ? 'AUTO ON' : 'AUTO OFF' }}
+            </span>
         </div>
         <a href="{{ route('marcas.show', $brand) }}" class="inline-flex w-fit rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800">Volver a la marca</a>
     </div>
@@ -164,6 +171,7 @@
                             <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Programación</h4>
                             <p class="mt-2 text-sm font-semibold text-slate-900">{{ $publication->scheduled_for->format('d/m/Y H:i') }}</p>
                             <p class="mt-1 text-sm text-slate-600">Estado: {{ $reviewScheduleStatus }}</p>
+                            <p class="mt-1 text-sm text-slate-600">Elegibilidad automática: {{ $autopublishingEnabled ? 'AUTO ON' : 'AUTO OFF' }}</p>
                         </section>
                         <section class="rounded-lg border border-slate-200 p-4">
                             <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Borrador</h4>

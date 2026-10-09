@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\MetaPublisherInterface;
 use App\Models\Brand;
+use App\Models\BrandAutopublishingSetting;
 use App\Models\Draft;
 use App\Models\MetaConnection;
 use App\Models\PublicationAttempt;
@@ -92,6 +93,24 @@ class PublishDueScheduledPublicationsCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(0, $fake->createCalls);
+        $this->assertSame(0, PublicationAttempt::query()->count());
+        Http::assertNothingSent();
+    }
+
+    public function test_command_with_global_gates_on_does_not_publish_disabled_brand(): void
+    {
+        $fake = $this->fakePublisher();
+        $this->enableGates();
+        $publication = $this->publication('Autopublishing disabled', '2026-10-06 11:00:00');
+        $publication->brand->autopublishingSetting->update(['enabled' => false]);
+
+        $this->artisan('socialflow:publish-due', ['--limit' => 25])
+            ->expectsOutputToContain('examined=0 published=0 skipped=0 blocked=0 failed=0 outcome_unknown=0')
+            ->assertSuccessful();
+
+        $this->assertSame(0, $fake->createCalls);
+        $this->assertSame(0, $fake->statusCalls);
+        $this->assertSame(0, $fake->publishCalls);
         $this->assertSame(0, PublicationAttempt::query()->count());
         Http::assertNothingSent();
     }
@@ -251,6 +270,9 @@ class PublishDueScheduledPublicationsCommandTest extends TestCase
         $user = User::factory()->create();
         $brand = Brand::factory()->create();
         $user->brands()->attach($brand, ['role' => 'owner']);
+        BrandAutopublishingSetting::factory()->enabled()->for($brand)->create([
+            'enabled_by' => $user->getKey(),
+        ]);
         $draft = Draft::create([
             'brand_id' => $brand->getKey(),
             'user_id' => $user->getKey(),

@@ -191,7 +191,8 @@ class ScheduleTest extends TestCase
         $this->get(route('marcas.programacion.index', $brand))
             ->assertOk()
             ->assertSeeInOrder([$readyDraft->title, 'LISTO', $upcoming->draft->title, 'PROGRAMADO', $cancelledDraft->title, 'CANCELADO'])
-            ->assertSee('Los elementos listos todavía no se publican automáticamente.');
+            ->assertSee('READY describe la preparación del schedule.')
+            ->assertSee('AUTO OFF');
     }
 
     public function test_approved_draft_remains_terminal_and_strategy_does_not_schedule_automatically(): void

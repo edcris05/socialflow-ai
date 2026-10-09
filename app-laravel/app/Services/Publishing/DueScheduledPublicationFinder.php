@@ -23,6 +23,9 @@ class DueScheduledPublicationFinder
         return ScheduledPublication::query()
             ->where('status', ScheduledPublication::STATUS_SCHEDULED)
             ->where('scheduled_for', '<=', now())
+            ->whereHas('brand.autopublishingSetting', function (Builder $settings): void {
+                $settings->enabledForAutomaticPublishing();
+            })
             ->whereDoesntHave('publicationAttempts', function (Builder $attempts): void {
                 $attempts
                     ->where('provider', 'meta')

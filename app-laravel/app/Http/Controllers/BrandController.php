@@ -54,7 +54,12 @@ class BrandController extends Controller
      */
     public function show(Brand $brand): View
     {
-        return view('brands.show', ['brand' => $this->ownedBrand($brand)]);
+        $brand = $this->ownedBrand($brand)->load([
+            'autopublishingSetting.enabledBy',
+            'autopublishingSetting.disabledBy',
+        ]);
+
+        return view('brands.show', compact('brand'));
     }
 
     /**
