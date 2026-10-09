@@ -50,6 +50,62 @@ Para apagar todos los proyectos DDEV activos:
 ddev poweroff
 ```
 
+## Scheduler unattended local
+
+El scheduler local se puede ejecutar cada minuto desde el cron del usuario,
+sin depender del directorio actual ni de un shell interactivo. El entrypoint
+versionado es `ops/run-scheduler.sh`; resuelve la raiz del repositorio,
+verifica `/usr/bin/ddev` y ejecuta solamente `ddev artisan schedule:run`.
+
+Instalarlo de forma idempotente, conservando las entradas ajenas:
+
+```bash
+{ (crontab -l 2>/dev/null || true) | grep -vF '/home/edgar/SocialFlowAI/ops/run-scheduler.sh'; printf '%s\n' 'SHELL=/bin/sh' 'PATH=/usr/bin:/bin' '* * * * * /home/edgar/SocialFlowAI/ops/run-scheduler.sh'; } | crontab -
+```
+
+Verificar la entrada y el log:
+
+```bash
+crontab -l
+tail -f /home/edgar/SocialFlowAI/runtime/scheduler/scheduler.log
+```
+
+El script usa `flock -n` sobre `/home/edgar/SocialFlowAI/runtime/scheduler/scheduler.lock`
+para evitar ejecuciones superpuestas en este entorno single-node. El lock es
+del kernel y se libera cuando termina el proceso; un archivo stale no bloquea
+por si solo. El log absoluto es
+`/home/edgar/SocialFlowAI/runtime/scheduler/scheduler.log`, se rota al superar
+1 MiB y conserva una copia `.1`. La rotacion ocurre despues de adquirir el
+lock.
+
+No hay timeout host en v1: una ejecucion valida del batch completo puede
+acercarse al presupuesto de 25 publicaciones x 258 segundos, mientras que
+Laravel conserva su mutex por 120 minutos. Si DDEV o Laravel quedan colgados,
+el lock evita lanzar otro scheduler y los siguientes ticks quedan omitidos
+hasta que el proceso termine; investigar y terminar el proceso es una
+operacion manual. Un timeout posterior debe calcularse contra ese presupuesto.
+
+Si DDEV no esta disponible, registra el error y termina con codigo distinto de
+cero, sin intentar iniciar servicios ni ejecutar `publish-due` directamente.
+
+Detenerlo eliminando solo la entrada del scheduler:
+
+```bash
+crontab -l | grep -v '/home/edgar/SocialFlowAI/ops/run-scheduler.sh' | crontab -
+```
+
+Este mecanismo no modifica `META_PUBLISHING_ENABLED` ni
+`SCHEDULED_PUBLISHING_ENABLED`. Aunque el scheduler se ejecute, la publicacion
+automatica requiere ambos gates globales y el opt-in AUTO de la marca. En este
+MVP local, Chatcito y Art Made To Print deben permanecer AUTO OFF.
+
+Cron no ejecuta ciclos mientras la laptop esta apagada o suspendida. Al volver
+a estar disponible, ejecuta el siguiente minuto; no agrega logica de catch-up.
+Si DDEV esta detenido, ese ciclo falla cerrado y queda registrado. Esta
+configuracion es solo para desarrollo local single-node, no el deployment
+final de produccion. En un entorno multi-node futuro se deberan evaluar
+`onOneServer()`, un cache/lock compartido y observabilidad de produccion.
+
 ## Comandos habituales de Laravel
 
 Ejecutar Artisan dentro del contenedor web:
