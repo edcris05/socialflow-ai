@@ -9,12 +9,24 @@ use App\Models\PublicationAttempt;
 use App\Models\PublicationMedia;
 use App\Models\ScheduledPublication;
 use App\Models\User;
+use App\Services\Meta\MetaContainerStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
 use Throwable;
 
 class PublicationOrchestrator
 {
     private const PROVIDER = 'meta';
+
+    private const CONTAINER_STATUS_MAX_ATTEMPTS_DEFAULT = 10;
+
+    private const CONTAINER_STATUS_MAX_ATTEMPTS_LIMIT = 10;
+
+    private const CONTAINER_STATUS_POLL_INTERVAL_DEFAULT_MS = 2000;
+
+    private const CONTAINER_STATUS_POLL_INTERVAL_MIN_MS = 100;
+
+    private const CONTAINER_STATUS_POLL_INTERVAL_MAX_MS = 2000;
 
     public function __construct(private MetaPublisherInterface $publisher) {}
 
@@ -147,6 +159,15 @@ class PublicationOrchestrator
 
         $attempt->update(['external_container_id' => $createResult->externalContainerId]);
 
+        $readinessFailure = $this->waitForContainerReadiness(
+            $connection,
+            $createResult->externalContainerId,
+        );
+
+        if ($readinessFailure !== null) {
+            return $this->failAttempt($attempt, $readinessFailure);
+        }
+
         try {
             $publishResult = $this->publisher->publishContainer(
                 $connection,
@@ -187,6 +208,105 @@ class PublicationOrchestrator
             externalContainerId: $createResult->externalContainerId,
             externalMediaId: $publishResult->externalMediaId,
         );
+    }
+
+    private function waitForContainerReadiness(
+        MetaConnection $connection,
+        string $containerId,
+    ): ?PublicationResult {
+        $maxAttempts = $this->boundedIntegerConfig(
+            'services.meta.container_status_max_attempts',
+            self::CONTAINER_STATUS_MAX_ATTEMPTS_DEFAULT,
+            minimum: 1,
+            maximum: self::CONTAINER_STATUS_MAX_ATTEMPTS_LIMIT,
+        );
+        $pollIntervalMilliseconds = $this->boundedIntegerConfig(
+            'services.meta.container_status_poll_interval_ms',
+            self::CONTAINER_STATUS_POLL_INTERVAL_DEFAULT_MS,
+            minimum: self::CONTAINER_STATUS_POLL_INTERVAL_MIN_MS,
+            maximum: self::CONTAINER_STATUS_POLL_INTERVAL_MAX_MS,
+        );
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $result = $this->publisher->getContainerStatus($connection, $containerId);
+            } catch (Throwable) {
+                return PublicationResult::failed(
+                    'META_CONTAINER_STATUS_FAILED',
+                    'No se pudo consultar el estado del contenedor de Instagram.',
+                    externalContainerId: $containerId,
+                );
+            }
+
+            if (! $result->successful || $result->status === null) {
+                return PublicationResult::failed(
+                    $result->errorCode ?? 'META_CONTAINER_STATUS_FAILED',
+                    $result->errorMessage ?? 'No se pudo confirmar el estado del contenedor de Instagram.',
+                    externalContainerId: $containerId,
+                );
+            }
+
+            if ($result->status === MetaContainerStatus::FINISHED) {
+                return null;
+            }
+
+            if ($result->status === MetaContainerStatus::ERROR) {
+                return PublicationResult::failed(
+                    'META_CONTAINER_PROCESSING_FAILED',
+                    'Instagram no pudo procesar el contenedor.',
+                    externalContainerId: $containerId,
+                );
+            }
+
+            if ($result->status === MetaContainerStatus::EXPIRED) {
+                return PublicationResult::failed(
+                    'META_CONTAINER_EXPIRED',
+                    'El contenedor de Instagram expiró antes de publicarse.',
+                    externalContainerId: $containerId,
+                );
+            }
+
+            if ($result->status === MetaContainerStatus::PUBLISHED) {
+                return PublicationResult::failed(
+                    'META_CONTAINER_ALREADY_PUBLISHED',
+                    'Instagram informa que el contenedor ya fue publicado; requiere reconciliación manual.',
+                    outcomeUncertain: true,
+                    externalContainerId: $containerId,
+                );
+            }
+
+            if ($attempt === $maxAttempts) {
+                return PublicationResult::failed(
+                    'META_CONTAINER_NOT_READY',
+                    'El contenedor de Instagram no quedó listo dentro del límite configurado.',
+                    externalContainerId: $containerId,
+                );
+            }
+
+            Sleep::for($pollIntervalMilliseconds)->milliseconds();
+        }
+
+        return PublicationResult::failed(
+            'META_CONTAINER_NOT_READY',
+            'El contenedor de Instagram no quedó listo dentro del límite configurado.',
+            externalContainerId: $containerId,
+        );
+    }
+
+    private function boundedIntegerConfig(
+        string $key,
+        int $default,
+        int $minimum,
+        int $maximum,
+    ): int {
+        $validated = filter_var(config($key), FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => $minimum,
+                'max_range' => $maximum,
+            ],
+        ]);
+
+        return is_int($validated) ? $validated : $default;
     }
 
     private function ownedPublication(

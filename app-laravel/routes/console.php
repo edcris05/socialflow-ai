@@ -10,4 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('socialflow:publish-due --limit=25')
     ->everyMinute()
-    ->withoutOverlapping(30);
+    ->withoutOverlapping(120);

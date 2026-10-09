@@ -64,6 +64,51 @@ class InstagramMetaPublisher implements MetaPublisherInterface
         return PublicationResult::succeeded(externalContainerId: $containerId);
     }
 
+    public function getContainerStatus(
+        MetaConnection $connection,
+        string $containerId,
+    ): MetaContainerStatusResult {
+        try {
+            $response = $this->request($connection)->get(
+                '/'.config('services.meta.version').'/'.$containerId,
+                ['fields' => 'status_code,status'],
+            );
+        } catch (ConnectionException) {
+            return MetaContainerStatusResult::failed(
+                'META_CONTAINER_STATUS_FAILED',
+                'No se pudo consultar el estado del contenedor de Instagram.',
+            );
+        }
+
+        if (in_array($response->status(), [401, 403], true)) {
+            return MetaContainerStatusResult::failed(
+                'META_AUTH_FAILED',
+                'Instagram rechazó la autenticación o los permisos de publicación.',
+            );
+        }
+
+        if ($response->failed()) {
+            return MetaContainerStatusResult::failed(
+                'META_CONTAINER_STATUS_FAILED',
+                'Instagram no permitió consultar el estado del contenedor.',
+            );
+        }
+
+        $statusCode = $response->json('status_code');
+        $status = is_string($statusCode)
+            ? MetaContainerStatus::tryFrom(trim($statusCode))
+            : null;
+
+        if ($status === null) {
+            return MetaContainerStatusResult::failed(
+                'META_CONTAINER_STATUS_INVALID',
+                'Instagram devolvió un estado de contenedor inválido.',
+            );
+        }
+
+        return MetaContainerStatusResult::succeeded($status);
+    }
+
     public function publishContainer(
         MetaConnection $connection,
         string $containerId,

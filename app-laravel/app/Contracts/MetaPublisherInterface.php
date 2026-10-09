@@ -3,6 +3,7 @@
 namespace App\Contracts;
 
 use App\Models\MetaConnection;
+use App\Services\Meta\MetaContainerStatusResult;
 use App\Services\Publishing\InstagramPublicationPayload;
 use App\Services\Publishing\PublicationResult;
 
@@ -12,6 +13,11 @@ interface MetaPublisherInterface
         MetaConnection $connection,
         InstagramPublicationPayload $payload,
     ): PublicationResult;
+
+    public function getContainerStatus(
+        MetaConnection $connection,
+        string $containerId,
+    ): MetaContainerStatusResult;
 
     public function publishContainer(
         MetaConnection $connection,

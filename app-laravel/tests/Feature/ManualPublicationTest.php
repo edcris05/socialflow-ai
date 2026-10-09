@@ -27,6 +27,8 @@ class ManualPublicationTest extends TestCase
 
     private const PUBLISH_URL = 'https://graph.instagram.com/v26.0/ig_123/media_publish';
 
+    private const STATUS_URL = 'https://graph.instagram.com/v26.0/container_123';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -151,22 +153,36 @@ class ManualPublicationTest extends TestCase
     {
         $order = [];
         Http::fake(function (Request $request) use (&$order) {
-            $order[] = $request->url();
+            if ($request->url() === self::MEDIA_URL) {
+                $order[] = 'preflight';
 
-            return match ($request->url()) {
-                self::MEDIA_URL => Http::response("\xFF\xD8\xFFjpeg", 200, [
+                return Http::response("\xFF\xD8\xFFjpeg", 200, [
                     'Content-Type' => 'image/jpeg',
                     'Content-Length' => '7',
-                ]),
-                self::CREATE_URL => Http::response(['id' => 'container_123']),
-                self::PUBLISH_URL => Http::response(['id' => 'media_123']),
-            };
+                ]);
+            }
+
+            if ($request->url() === self::CREATE_URL) {
+                $order[] = 'create';
+
+                return Http::response(['id' => 'container_123']);
+            }
+
+            if (str_starts_with($request->url(), self::STATUS_URL)) {
+                $order[] = 'status';
+
+                return Http::response(['status_code' => 'FINISHED']);
+            }
+
+            $order[] = 'publish';
+
+            return Http::response(['id' => 'media_123']);
         });
         [$user, $brand, , $publication, , $media] = $this->publication();
 
         $this->publish($user, $brand, $publication)->assertSessionHas('status');
 
-        $this->assertSame([self::MEDIA_URL, self::CREATE_URL, self::PUBLISH_URL], $order);
+        $this->assertSame(['preflight', 'create', 'status', 'publish'], $order);
         $this->assertTrue($media->fresh()->hasFreshPreflight());
         $attempt = PublicationAttempt::query()->sole();
         $this->assertSame(PublicationAttempt::STATUS_PUBLISHED, $attempt->status);
@@ -180,6 +196,7 @@ class ManualPublicationTest extends TestCase
         Http::fake([
             self::MEDIA_URL => Http::response("\xFF\xD8\xFFjpeg", 200, ['Content-Type' => 'image/jpeg']),
             self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::response(['id' => 'media_123']),
         ]);
         [$user, $brand, , $publication] = $this->publication();
@@ -188,7 +205,7 @@ class ManualPublicationTest extends TestCase
         $this->publish($user, $brand, $publication)->assertSessionHas('status');
 
         $this->assertSame(1, PublicationAttempt::query()->count());
-        Http::assertSentCount(3);
+        Http::assertSentCount(4);
     }
 
     #[DataProvider('blockedAttemptStatuses')]

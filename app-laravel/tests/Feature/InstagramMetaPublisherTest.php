@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\MetaConnection;
 use App\Models\User;
 use App\Services\Meta\InstagramMetaPublisher;
+use App\Services\Meta\MetaContainerStatus;
 use App\Services\Publishing\InstagramPublicationPayload;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -20,6 +21,8 @@ class InstagramMetaPublisherTest extends TestCase
     private const CREATE_URL = 'https://graph.instagram.com/v26.0/ig_123/media';
 
     private const PUBLISH_URL = 'https://graph.instagram.com/v26.0/ig_123/media_publish';
+
+    private const STATUS_URL = 'https://graph.instagram.com/v26.0/container_123';
 
     public function test_create_container_sends_approved_image_payload_and_bearer_token(): void
     {
@@ -71,6 +74,110 @@ class InstagramMetaPublisherTest extends TestCase
             return true;
         });
         Http::assertSentCount(1);
+    }
+
+    #[DataProvider('containerStatuses')]
+    public function test_container_status_returns_known_meta_state(
+        string $statusCode,
+        MetaContainerStatus $expectedStatus,
+    ): void {
+        Http::preventStrayRequests();
+        Http::fake([
+            self::STATUS_URL.'*' => Http::response([
+                'status_code' => $statusCode,
+                'status' => $statusCode,
+            ]),
+        ]);
+
+        $result = (new InstagramMetaPublisher)->getContainerStatus($this->connection(), 'container_123');
+
+        $this->assertTrue($result->successful);
+        $this->assertSame($expectedStatus, $result->status);
+        $this->assertNull($result->errorCode);
+        Http::assertSent(function (Request $request): bool {
+            $this->assertSame('GET', $request->method());
+            $this->assertStringStartsWith(self::STATUS_URL, $request->url());
+            $this->assertSame('status_code,status', $request['fields']);
+            $this->assertTrue($request->hasHeader('Authorization', 'Bearer fake-meta-token'));
+
+            return true;
+        });
+        Http::assertSentCount(1);
+    }
+
+    /** @return array<string, array{string, MetaContainerStatus}> */
+    public static function containerStatuses(): array
+    {
+        return [
+            'finished' => ['FINISHED', MetaContainerStatus::FINISHED],
+            'finished with surrounding whitespace' => [' FINISHED ', MetaContainerStatus::FINISHED],
+            'in progress' => ['IN_PROGRESS', MetaContainerStatus::IN_PROGRESS],
+            'error' => ['ERROR', MetaContainerStatus::ERROR],
+            'expired' => ['EXPIRED', MetaContainerStatus::EXPIRED],
+            'published' => ['PUBLISHED', MetaContainerStatus::PUBLISHED],
+        ];
+    }
+
+    #[DataProvider('statusHttpFailures')]
+    public function test_container_status_http_failures_are_sanitized(int $httpStatus, string $expectedCode): void
+    {
+        $token = 'fake-status-secret-token';
+        Http::preventStrayRequests();
+        Http::fake([
+            self::STATUS_URL.'*' => Http::response(['error' => ['message' => 'raw '.$token]], $httpStatus),
+        ]);
+
+        $result = (new InstagramMetaPublisher)->getContainerStatus($this->connection($token), 'container_123');
+
+        $this->assertFalse($result->successful);
+        $this->assertNull($result->status);
+        $this->assertSame($expectedCode, $result->errorCode);
+        $this->assertStringNotContainsString($token, (string) $result->errorMessage);
+        $this->assertStringNotContainsString('raw', (string) $result->errorMessage);
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $request): bool => $request->url() === self::PUBLISH_URL);
+    }
+
+    /** @return array<string, array{int, string}> */
+    public static function statusHttpFailures(): array
+    {
+        return [
+            'bad request' => [400, 'META_CONTAINER_STATUS_FAILED'],
+            'unauthorized' => [401, 'META_AUTH_FAILED'],
+            'forbidden' => [403, 'META_AUTH_FAILED'],
+            'server error' => [500, 'META_CONTAINER_STATUS_FAILED'],
+        ];
+    }
+
+    #[DataProvider('invalidStatusResponses')]
+    public function test_container_status_unknown_or_malformed_response_fails_closed(mixed $body): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            self::STATUS_URL.'*' => Http::response($body, 200, ['Content-Type' => 'application/json']),
+        ]);
+
+        $result = (new InstagramMetaPublisher)->getContainerStatus($this->connection(), 'container_123');
+
+        $this->assertFalse($result->successful);
+        $this->assertNull($result->status);
+        $this->assertSame('META_CONTAINER_STATUS_INVALID', $result->errorCode);
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $request): bool => $request->url() === self::PUBLISH_URL);
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function invalidStatusResponses(): array
+    {
+        return [
+            'malformed json' => ['{invalid-json'],
+            'missing status code' => [['status' => 'FINISHED']],
+            'unknown status code' => [['status_code' => 'UNKNOWN']],
+            'blank status code' => [['status_code' => '']],
+            'whitespace status code' => [['status_code' => '   ']],
+            'lowercase status code' => [['status_code' => 'finished']],
+            'non-string status code' => [['status_code' => 1]],
+        ];
     }
 
     #[DataProvider('createHttpFailures')]
@@ -224,6 +331,22 @@ class InstagramMetaPublisherTest extends TestCase
         $this->assertTrue($result->outcomeUncertain);
         $this->assertStringNotContainsString('raw-publish-network-secret', (string) $result->errorMessage);
         Http::assertSentCount(1);
+    }
+
+    public function test_container_status_connection_failure_is_sanitized(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            self::STATUS_URL.'*' => Http::failedConnection('raw-status-network-secret'),
+        ]);
+
+        $result = (new InstagramMetaPublisher)->getContainerStatus($this->connection(), 'container_123');
+
+        $this->assertFalse($result->successful);
+        $this->assertSame('META_CONTAINER_STATUS_FAILED', $result->errorCode);
+        $this->assertStringNotContainsString('raw-status-network-secret', (string) $result->errorMessage);
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $request): bool => $request->url() === self::PUBLISH_URL);
     }
 
     private function connection(string $token = 'fake-meta-token'): MetaConnection

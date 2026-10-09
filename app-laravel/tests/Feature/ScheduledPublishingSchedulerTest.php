@@ -36,9 +36,29 @@ class ScheduledPublishingSchedulerTest extends TestCase
         $event = $events->sole();
         $this->assertSame('* * * * *', $event->expression);
         $this->assertTrue($event->withoutOverlapping);
-        $this->assertSame(30, $event->expiresAt);
+        $this->assertSame(120, $event->expiresAt);
         $this->assertFalse($event->onOneServer);
         $this->assertSame(config('app.timezone'), $event->timezone);
+    }
+
+    public function test_overlap_ttl_exceeds_bounded_batch_meta_timeout_budget(): void
+    {
+        $event = $this->scheduledPublishingEvents()->sole();
+        $maxChecks = (int) config('services.meta.container_status_max_attempts');
+        $requestTimeoutSeconds = (int) config('services.meta.timeout');
+        $pollIntervalMilliseconds = (int) config('services.meta.container_status_poll_interval_ms');
+        $perPublicationSeconds = $requestTimeoutSeconds
+            + ($maxChecks * $requestTimeoutSeconds)
+            + intdiv(($maxChecks - 1) * $pollIntervalMilliseconds, 1000)
+            + $requestTimeoutSeconds;
+        $batchSeconds = 25 * $perPublicationSeconds;
+        $lockSeconds = $event->expiresAt * 60;
+
+        $this->assertSame(258, $perPublicationSeconds);
+        $this->assertSame(6450, $batchSeconds);
+        $this->assertSame(7200, $lockSeconds);
+        $this->assertSame(750, $lockSeconds - $batchSeconds);
+        $this->assertGreaterThan($batchSeconds, $lockSeconds);
     }
 
     public function test_registered_command_with_gates_off_makes_no_attempts_or_external_calls(): void

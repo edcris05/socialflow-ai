@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\MetaPublisherInterface;
 use App\Models\Brand;
 use App\Models\Draft;
 use App\Models\MetaConnection;
@@ -10,6 +11,8 @@ use App\Models\PublicationMedia;
 use App\Models\PublicMediaHosting;
 use App\Models\ScheduledPublication;
 use App\Models\User;
+use App\Services\Meta\MetaContainerStatus;
+use App\Services\Meta\MetaContainerStatusResult;
 use App\Services\Publishing\PublicationOrchestrator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -17,7 +20,9 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Fakes\FakeMetaPublisher;
 use Tests\TestCase;
 
 class PublicationOrchestratorTest extends TestCase
@@ -27,6 +32,15 @@ class PublicationOrchestratorTest extends TestCase
     private const CREATE_URL = 'https://graph.instagram.com/v26.0/ig_123/media';
 
     private const PUBLISH_URL = 'https://graph.instagram.com/v26.0/ig_123/media_publish';
+
+    private const STATUS_URL = 'https://graph.instagram.com/v26.0/container_123';
+
+    protected function tearDown(): void
+    {
+        Sleep::fake(false);
+
+        parent::tearDown();
+    }
 
     public function test_successful_publication_persists_lifecycle_ids_and_immutable_snapshots(): void
     {
@@ -41,9 +55,13 @@ class PublicationOrchestratorTest extends TestCase
                 return Http::response(['id' => 'container_123']);
             }
 
-            $attempt = PublicationAttempt::query()->sole();
-            $this->assertSame('container_123', $attempt->external_container_id);
-            $this->assertSame(PublicationAttempt::STATUS_PUBLISHING, $attempt->status);
+            if (str_starts_with($request->url(), self::STATUS_URL)) {
+                $attempt = PublicationAttempt::query()->sole();
+                $this->assertSame('container_123', $attempt->external_container_id);
+                $this->assertSame(PublicationAttempt::STATUS_PUBLISHING, $attempt->status);
+
+                return Http::response(['status_code' => 'FINISHED', 'status' => 'FINISHED']);
+            }
 
             return Http::response(['id' => 'media_123']);
         });
@@ -77,7 +95,296 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame('Contenido aprobado', $attempt->fresh()->caption_snapshot);
         $this->assertSame('https://cdn.example.com/approved.jpg', $attempt->fresh()->media_url_snapshot);
         $this->assertSame($brand->getKey(), $attempt->scheduledPublication->brand_id);
+        Http::assertSentCount(3);
+    }
+
+    public function test_finished_on_first_check_publishes_once_without_sleeping(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertTrue($result->successful);
+        $this->assertSame(1, $fake->createCalls);
+        $this->assertSame(1, $fake->statusCalls);
+        $this->assertSame(1, $fake->publishCalls);
+        $this->assertSame(['create', 'status', 'publish'], $fake->calls);
+        $this->assertSame(PublicationAttempt::STATUS_PUBLISHED, PublicationAttempt::query()->sole()->status);
+        Sleep::assertNeverSlept();
+        Http::assertNothingSent();
+    }
+
+    public function test_finished_on_tenth_check_publishes_after_nine_sleeps(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = array_fill(
+            0,
+            9,
+            MetaContainerStatusResult::succeeded(MetaContainerStatus::IN_PROGRESS),
+        );
+        $fake->statusResults[] = MetaContainerStatusResult::succeeded(MetaContainerStatus::FINISHED);
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertTrue($result->successful);
+        $this->assertSame(10, $fake->statusCalls);
+        $this->assertSame(1, $fake->publishCalls);
+        $this->assertSame(
+            ['create', ...array_fill(0, 10, 'status'), 'publish'],
+            $fake->calls,
+        );
+        Sleep::assertSlept(
+            fn ($duration): bool => (int) $duration->totalMilliseconds === 2000,
+            9,
+        );
+        Sleep::assertSleptTimes(9);
+        Http::assertNothingSent();
+    }
+
+    public function test_in_progress_on_tenth_check_fails_after_nine_sleeps_without_publish(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = [MetaContainerStatusResult::succeeded(MetaContainerStatus::IN_PROGRESS)];
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame('META_CONTAINER_NOT_READY', $result->errorCode);
+        $this->assertSame(10, $fake->statusCalls);
+        $this->assertSame(0, $fake->publishCalls);
+        $this->assertSame(['create', ...array_fill(0, 10, 'status')], $fake->calls);
+        $attempt = PublicationAttempt::query()->sole();
+        $this->assertSame(PublicationAttempt::STATUS_FAILED, $attempt->status);
+        $this->assertSame('fake_container', $attempt->external_container_id);
+        Sleep::assertSlept(
+            fn ($duration): bool => (int) $duration->totalMilliseconds === 2000,
+            9,
+        );
+        Sleep::assertSleptTimes(9);
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('invalidPollingConfigurations')]
+    public function test_invalid_polling_configuration_uses_safe_defaults(
+        mixed $maxAttempts,
+        mixed $pollIntervalMilliseconds,
+    ): void {
+        Config::set('services.meta.publishing_enabled', true);
+        Config::set('services.meta.container_status_max_attempts', $maxAttempts);
+        Config::set('services.meta.container_status_poll_interval_ms', $pollIntervalMilliseconds);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = array_fill(
+            0,
+            9,
+            MetaContainerStatusResult::succeeded(MetaContainerStatus::IN_PROGRESS),
+        );
+        $fake->statusResults[] = MetaContainerStatusResult::succeeded(MetaContainerStatus::FINISHED);
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertTrue($result->successful);
+        $this->assertSame(10, $fake->statusCalls);
+        $this->assertSame(1, $fake->publishCalls);
+        Sleep::assertSlept(
+            fn ($duration): bool => (int) $duration->totalMilliseconds === 2000,
+            9,
+        );
+        Sleep::assertSleptTimes(9);
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{mixed, mixed}> */
+    public static function invalidPollingConfigurations(): array
+    {
+        return [
+            'zero' => [0, 0],
+            'negative' => [-1, -1],
+            'empty' => ['', ''],
+            'non-numeric' => ['invalid', 'invalid'],
+            'above safe maximum' => [11, 2001],
+        ];
+    }
+
+    public function test_valid_lower_polling_configuration_is_honored(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Config::set('services.meta.container_status_max_attempts', 3);
+        Config::set('services.meta.container_status_poll_interval_ms', 125);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = [
+            MetaContainerStatusResult::succeeded(MetaContainerStatus::IN_PROGRESS),
+            MetaContainerStatusResult::succeeded(MetaContainerStatus::FINISHED),
+        ];
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertTrue($result->successful);
+        $this->assertSame(2, $fake->statusCalls);
+        $this->assertSame(1, $fake->publishCalls);
+        Sleep::assertSequence([Sleep::for(125)->milliseconds()]);
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('terminalContainerStatuses')]
+    public function test_terminal_container_status_blocks_publish(
+        MetaContainerStatus $status,
+        string $expectedCode,
+        string $expectedAttemptStatus,
+        bool $outcomeUncertain,
+    ): void {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = [MetaContainerStatusResult::succeeded($status)];
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame($expectedCode, $result->errorCode);
+        $this->assertSame($outcomeUncertain, $result->outcomeUncertain);
+        $this->assertSame(1, $fake->statusCalls);
+        $this->assertSame(0, $fake->publishCalls);
+        $this->assertSame(['create', 'status'], $fake->calls);
+        $this->assertSame($expectedAttemptStatus, PublicationAttempt::query()->sole()->status);
+        Sleep::assertNeverSlept();
+        Http::assertNothingSent();
+    }
+
+    /** @return array<string, array{MetaContainerStatus, string, string, bool}> */
+    public static function terminalContainerStatuses(): array
+    {
+        return [
+            'processing error' => [
+                MetaContainerStatus::ERROR,
+                'META_CONTAINER_PROCESSING_FAILED',
+                PublicationAttempt::STATUS_FAILED,
+                false,
+            ],
+            'expired' => [
+                MetaContainerStatus::EXPIRED,
+                'META_CONTAINER_EXPIRED',
+                PublicationAttempt::STATUS_FAILED,
+                false,
+            ],
+            'unexpectedly published' => [
+                MetaContainerStatus::PUBLISHED,
+                'META_CONTAINER_ALREADY_PUBLISHED',
+                PublicationAttempt::STATUS_OUTCOME_UNKNOWN,
+                true,
+            ],
+        ];
+    }
+
+    public function test_invalid_container_status_failure_is_persisted_without_publish(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Sleep::fake();
+        $fake = new FakeMetaPublisher;
+        $fake->statusResults = [MetaContainerStatusResult::failed(
+            'META_CONTAINER_STATUS_INVALID',
+            'Instagram devolvió un estado de contenedor inválido.',
+        )];
+        $this->app->instance(MetaPublisherInterface::class, $fake);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertSame('META_CONTAINER_STATUS_INVALID', $result->errorCode);
+        $this->assertSame(0, $fake->publishCalls);
+        $this->assertSame(['create', 'status'], $fake->calls);
+        $this->assertSame(PublicationAttempt::STATUS_FAILED, PublicationAttempt::query()->sole()->status);
+        Sleep::assertNeverSlept();
+        Http::assertNothingSent();
+    }
+
+    #[DataProvider('containerStatusHttpFailures')]
+    public function test_container_status_http_failure_preserves_container_and_fails_deterministically(
+        int $httpStatus,
+        string $expectedCode,
+    ): void {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Http::fake([
+            self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response([
+                'error' => ['message' => 'raw fake-meta-token'],
+            ], $httpStatus),
+        ]);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertFalse($result->outcomeUncertain);
+        $this->assertSame($expectedCode, $result->errorCode);
+        $attempt = PublicationAttempt::query()->sole();
+        $this->assertSame(PublicationAttempt::STATUS_FAILED, $attempt->status);
+        $this->assertSame('container_123', $attempt->external_container_id);
+        $this->assertStringNotContainsString('raw', $attempt->toJson());
+        $this->assertStringNotContainsString('fake-meta-token', $attempt->last_error_message ?? '');
         Http::assertSentCount(2);
+        Http::assertNotSent(fn (Request $request): bool => $request->url() === self::PUBLISH_URL);
+    }
+
+    /** @return array<string, array{int, string}> */
+    public static function containerStatusHttpFailures(): array
+    {
+        return [
+            'unauthorized' => [401, 'META_AUTH_FAILED'],
+            'forbidden' => [403, 'META_AUTH_FAILED'],
+            'server error' => [500, 'META_CONTAINER_STATUS_FAILED'],
+        ];
+    }
+
+    public function test_container_status_network_failure_preserves_container_and_fails_deterministically(): void
+    {
+        Config::set('services.meta.publishing_enabled', true);
+        Http::preventStrayRequests();
+        Http::fake([
+            self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::failedConnection('raw status network detail'),
+        ]);
+        [$user, , , $publication] = $this->publication();
+
+        $result = $this->orchestrator()->publish($user, $publication);
+
+        $this->assertFalse($result->successful);
+        $this->assertFalse($result->outcomeUncertain);
+        $this->assertSame('META_CONTAINER_STATUS_FAILED', $result->errorCode);
+        $attempt = PublicationAttempt::query()->sole();
+        $this->assertSame(PublicationAttempt::STATUS_FAILED, $attempt->status);
+        $this->assertSame('container_123', $attempt->external_container_id);
+        $this->assertStringNotContainsString('raw status network detail', $attempt->toJson());
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn (Request $request): bool => $request->url() === self::PUBLISH_URL);
     }
 
     public function test_double_execution_returns_published_result_without_new_http(): void
@@ -86,6 +393,7 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake([
             self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::response(['id' => 'media_123']),
         ]);
         [$user, , , $publication] = $this->publication();
@@ -100,7 +408,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame($first->externalContainerId, $second->externalContainerId);
         $this->assertSame($first->externalMediaId, $second->externalMediaId);
         $this->assertSame(1, PublicationAttempt::query()->count());
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_existing_publishing_attempt_blocks_parallel_http(): void
@@ -191,6 +499,7 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake([
             self::CREATE_URL => Http::response(['id' => 'container_managed']),
+            'https://graph.instagram.com/v26.0/container_managed*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::response(['id' => 'media_managed']),
         ]);
         [$user, , $draft, $publication] = $this->publication();
@@ -216,7 +525,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame($managedUrl, PublicationAttempt::query()->sole()->media_url_snapshot);
         Http::assertSent(fn (Request $request): bool => $request->url() !== self::CREATE_URL
             || $request['image_url'] === $managedUrl);
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     #[DataProvider('localPreconditions')]
@@ -333,6 +642,7 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake([
             self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::response(['error' => ['message' => 'raw details']], 400),
         ]);
         [$user, , , $publication] = $this->publication();
@@ -346,7 +656,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertSame('container_123', $attempt->external_container_id);
         $this->assertNull($attempt->external_media_id);
         $this->assertStringNotContainsString('raw details', $attempt->toJson());
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_ambiguous_publish_failure_is_persisted_and_never_retried_automatically(): void
@@ -355,6 +665,7 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake([
             self::CREATE_URL => Http::response(['id' => 'container_123']),
+            self::STATUS_URL.'*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::failedConnection('raw uncertain network detail'),
         ]);
         [$user, , $draft, $publication] = $this->publication();
@@ -380,7 +691,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertNull($attempt->published_at);
         $this->assertSame('https://cdn.example.com/approved.jpg', $attempt->media_url_snapshot);
         $this->assertStringNotContainsString('raw uncertain network detail', $attempt->toJson());
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     #[DataProvider('ambiguousPublishResponses')]
@@ -390,6 +701,7 @@ class PublicationOrchestratorTest extends TestCase
         Http::preventStrayRequests();
         Http::fake([
             self::CREATE_URL => Http::response(['id' => 'container_ambiguous']),
+            'https://graph.instagram.com/v26.0/container_ambiguous*' => Http::response(['status_code' => 'FINISHED']),
             self::PUBLISH_URL => Http::response($body, $status, ['Content-Type' => 'application/json']),
         ]);
         [$user, , , $publication] = $this->publication();
@@ -406,7 +718,7 @@ class PublicationOrchestratorTest extends TestCase
         $this->assertNull($attempt->published_at);
         $this->assertSame('META_PUBLISH_OUTCOME_UNKNOWN', $attempt->last_error_code);
         $this->assertStringNotContainsString('fake-meta-token', $attempt->toJson());
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public static function ambiguousPublishResponses(): array

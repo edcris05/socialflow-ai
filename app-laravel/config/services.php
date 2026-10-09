@@ -1,5 +1,16 @@
 <?php
 
+$boundedInteger = static function (mixed $value, int $default, int $minimum, int $maximum): int {
+    $validated = filter_var($value, FILTER_VALIDATE_INT, [
+        'options' => [
+            'min_range' => $minimum,
+            'max_range' => $maximum,
+        ],
+    ]);
+
+    return is_int($validated) ? $validated : $default;
+};
+
 return [
 
     /*
@@ -33,6 +44,18 @@ return [
         'version' => 'v26.0',
         'connect_timeout' => 10,
         'timeout' => 20,
+        'container_status_max_attempts' => $boundedInteger(
+            env('META_CONTAINER_STATUS_MAX_ATTEMPTS', 10),
+            10,
+            1,
+            10,
+        ),
+        'container_status_poll_interval_ms' => $boundedInteger(
+            env('META_CONTAINER_STATUS_POLL_INTERVAL_MS', 2000),
+            2000,
+            100,
+            2000,
+        ),
         'publishing_enabled' => filter_var(env('META_PUBLISHING_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
